@@ -15,19 +15,22 @@
   },
   "dependencies": {
     "@tarojs/components": "^3.6.0",
+    "@tarojs/plugin-framework-react": "^3.6.38",
+    "@tarojs/plugin-platform-h5": "^3.6.0",
+    "@tarojs/plugin-platform-weapp": "^3.6.0",
     "@tarojs/runtime": "^3.6.0",
     "@tarojs/taro": "^3.6.0",
-    "@tarojs/plugin-platform-weapp": "^3.6.0",
-    "@tarojs/plugin-platform-h5": "^3.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
-    "@tarojs/cli": "^3.6.0",
     "@babel/core": "^7.23.0",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
+    "@tarojs/cli": "^3.6.0",
     "@tarojs/webpack5-runner": "^3.6.0",
     "babel-preset-taro": "^3.6.0",
+    "react-refresh": "^0.18.0",
     "webpack": "^5.88.0"
   }
 }

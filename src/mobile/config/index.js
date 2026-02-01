@@ -1,3 +1,5 @@
+const path = require('path');
+
 const config = {
   projectName: 'hotel-mobile',
   date: '2026-2-1',
@@ -42,6 +44,7 @@ const config = {
     }
   },
   h5: {
+    template: path.resolve(__dirname, '../src/index.html'),
     publicPath: '/',
     staticDirectory: 'static',
     postcss: {
@@ -59,6 +62,11 @@ const config = {
     },
     devServer: {
       port: 10086,
+      static: false,
+      historyApiFallback: true,
+      client: {
+        overlay: false
+      },
       proxy: {
         '/api': {
           target: 'http://localhost:3000',

@@ -1,4 +1,4 @@
-export default defineAppConfig({
+export default {
   pages: [
     'pages/index/index',
     'pages/list/index',
@@ -10,4 +10,4 @@ export default defineAppConfig({
     navigationBarTitleText: '易宿酒店',
     navigationBarTextStyle: 'black'
   }
-});
+};
