@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Form, Input, InputNumber, Button, DatePicker, Select, Space, Card, message } from 'antd';
-import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { Form, Input, InputNumber, Button, DatePicker, Select, Space, Card, message, Upload } from 'antd';
+import { MinusCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { hotelService } from '../../services/api';
 
@@ -10,6 +10,7 @@ function HotelForm() {
   const { id } = useParams();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [hotelImageList, setHotelImageList] = useState([]);
 
   useEffect(() => {
     if (id) {
@@ -21,6 +22,16 @@ function HotelForm() {
     try {
       const res = await hotelService.getHotelById(id);
       const hotel = res.data;
+      
+      // 转换图片数据为 Upload 组件需要的格式
+      const imageList = (hotel.images || []).map((url, index) => ({
+        uid: `-${index}`,
+        name: `image-${index}.jpg`,
+        status: 'done',
+        url: url
+      }));
+      setHotelImageList(imageList);
+      
       form.setFieldsValue({
         ...hotel,
         openDate: dayjs(hotel.openDate)
@@ -30,12 +41,41 @@ function HotelForm() {
     }
   };
 
+  // 处理图片上传
+  const handleImageChange = ({ fileList }) => {
+    setHotelImageList(fileList);
+  };
+
+  // 自定义上传（暂时使用 base64，实际项目应该上传到服务器）
+  const customUpload = ({ file, onSuccess }) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      onSuccess(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const onFinish = async (values) => {
+    // 验证至少上传一张图片
+    if (hotelImageList.length === 0) {
+      message.error('请至少上传一张酒店图片');
+      return;
+    }
+
     setLoading(true);
     try {
+      // 提取图片 URL
+      const images = hotelImageList.map(file => {
+        if (file.response) {
+          return file.response; // base64 或服务器返回的 URL
+        }
+        return file.url; // 已存在的 URL
+      });
+
       const data = {
         ...values,
-        openDate: values.openDate.toISOString()
+        openDate: values.openDate.toISOString(),
+        images: images
       };
 
       if (id) {
@@ -116,6 +156,28 @@ function HotelForm() {
           rules={[{ required: true, message: '请选择开业时间' }]}
         >
           <DatePicker style={{ width: '100%' }} />
+        </Form.Item>
+
+        <Form.Item
+          label="酒店图片"
+          required
+          extra="请至少上传一张酒店图片，支持 JPG、PNG 格式"
+        >
+          <Upload
+            listType="picture-card"
+            fileList={hotelImageList}
+            onChange={handleImageChange}
+            customRequest={customUpload}
+            accept="image/*"
+            multiple
+          >
+            {hotelImageList.length >= 8 ? null : (
+              <div>
+                <PlusOutlined />
+                <div style={{ marginTop: 8 }}>上传图片</div>
+              </div>
+            )}
+          </Upload>
         </Form.Item>
 
         <Form.Item
