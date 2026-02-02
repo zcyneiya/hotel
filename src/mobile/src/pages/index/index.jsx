@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Taro from '@tarojs/taro';
-import { View, Image, Picker, Swiper, SwiperItem } from '@tarojs/components';
+import { View, Image, Picker, Swiper, SwiperItem, Input } from '@tarojs/components';
 import './index.scss';
 
 export default function Index() {
@@ -192,7 +192,7 @@ export default function Index() {
           </View>
           <View className="item-content">
             <View className="location-row">
-              <input
+              <Input
                 className="location-input"
                 value={location}
                 onInput={(e) => setLocation(e.detail.value)}
@@ -214,7 +214,7 @@ export default function Index() {
             <View className="label-text">关键字</View>
           </View>
           <View className="item-content">
-            <input
+            <Input
               className="search-input"
               value={keyword}
               onInput={(e) => setKeyword(e.detail.value)}
