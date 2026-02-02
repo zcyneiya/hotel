@@ -13,33 +13,43 @@ export default function List() {
 
   useEffect(() => {
     const instance = Taro.getCurrentInstance();
-    const { city, keyword, checkIn, checkOut } = instance.router.params;
-    setParams({ city, keyword, checkIn, checkOut });
-    fetchHotels({ city, keyword, page: 1 });
+    const { city, keyword, checkIn, checkOut, starLevel, priceRange, tags } = instance.router.params;
+    
+    console.log('搜索参数:', { city, keyword, checkIn, checkOut, starLevel, priceRange, tags });
+    
+    setParams({ city, keyword, checkIn, checkOut, starLevel, priceRange, tags });
+    fetchHotels({ city, keyword, checkIn, checkOut, starLevel, priceRange, tags, page: 1 });
   }, []);
 
   const fetchHotels = async (searchParams) => {
     if (loading) return;
     setLoading(true);
     try {
+      console.log('请求参数:', searchParams);
+      
       const res = await hotelService.getHotels({
         ...searchParams,
         page: searchParams.page || page,
         limit: 10
       });
       
+      console.log('返回结果:', res);
+      
       if (searchParams.page === 1) {
-        setHotels(res.data.hotels);
+        setHotels(res.data.hotels || []);
       } else {
-        setHotels([...hotels, ...res.data.hotels]);
+        setHotels([...hotels, ...(res.data.hotels || [])]);
       }
       
       setHasMore(res.data.pagination.page < res.data.pagination.pages);
     } catch (error) {
+      console.error('加载失败:', error);
       Taro.showToast({
-        title: '加载失败',
-        icon: 'none'
+        title: error.message || '加载失败',
+        icon: 'none',
+        duration: 2000
       });
+      setHotels([]);
     } finally {
       setLoading(false);
     }

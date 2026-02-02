@@ -30,7 +30,11 @@ export const getHotels = async (req, res) => {
 
     const query = { status: 'published', isDeleted: false };
 
-    if (city) query.city = city;
+    // 城市模糊搜索（支持"武汉"、"武汉市"等）
+    if (city) {
+      query.city = { $regex: city.replace(/市$/, ''), $options: 'i' };
+    }
+    
     if (starLevel) query.starLevel = parseInt(starLevel);
     if (keyword) query['name.cn'] = { $regex: keyword, $options: 'i' };
 
