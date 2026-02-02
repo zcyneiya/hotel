@@ -28,6 +28,8 @@ export const getHotels = async (req, res) => {
   try {
     const { city, keyword, starLevel, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
 
+    console.log('收到查询参数:', req.query);
+
     const query = { status: 'published', isDeleted: false };
 
     // 城市模糊搜索（支持"武汉"、"武汉市"等）
@@ -45,10 +47,14 @@ export const getHotels = async (req, res) => {
       query['name.cn'] = { $regex: keyword, $options: 'i' };
     }
 
+    console.log('MongoDB 查询条件:', JSON.stringify(query, null, 2));
+
     const hotels = await Hotel.find(query)
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
+
+    console.log('查询结果数量:', hotels.length);
 
     const total = await Hotel.countDocuments(query);
 
