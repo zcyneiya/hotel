@@ -17,8 +17,8 @@ connectDB();
 
 // 中间件
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' })); // 增加 JSON 请求体大小限制
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); // 增加 URL 编码请求体大小限制
 
 // 路由
 app.use('/api/auth', authRoutes);
