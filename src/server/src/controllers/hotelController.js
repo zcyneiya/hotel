@@ -26,9 +26,18 @@ export const createHotel = async (req, res) => {
 // 获取酒店列表（用户端）
 export const getHotels = async (req, res) => {
   try {
-    const { city, keyword, starLevel, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
+    let { city, keyword, starLevel, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
 
     console.log('收到查询参数:', req.query);
+
+    // 解码 URL 编码的参数
+    if (city) {
+      try {
+        city = decodeURIComponent(city);
+      } catch (e) {
+        console.log('城市参数解码失败，使用原值');
+      }
+    }
 
     const query = { status: 'published', isDeleted: false };
 
@@ -47,6 +56,7 @@ export const getHotels = async (req, res) => {
       query['name.cn'] = { $regex: keyword, $options: 'i' };
     }
 
+    console.log('解码后的城市:', city);
     console.log('MongoDB 查询条件:', JSON.stringify(query, null, 2));
 
     const hotels = await Hotel.find(query)
