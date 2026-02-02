@@ -1,16 +1,38 @@
 import { useState } from 'react';
 import Taro from '@tarojs/taro';
-import { View, Image, Picker } from '@tarojs/components';
+import { View, Image, Picker, Swiper, SwiperItem } from '@tarojs/components';
 import './index.scss';
 
 export default function Index() {
-  const [location, setLocation] = useState('当前定位');
+  const [location, setLocation] = useState('');
   const [keyword, setKeyword] = useState('');
   const [checkInDate, setCheckInDate] = useState('');
   const [checkOutDate, setCheckOutDate] = useState('');
   const [starLevel, setStarLevel] = useState('不限');
   const [priceRange, setPriceRange] = useState('不限');
   const [selectedTags, setSelectedTags] = useState([]);
+
+  // 顶部 Banner 广告
+  const banners = [
+    { 
+      id: 1, 
+      image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=400&fit=crop',
+      hotelId: '1',
+      title: '豪华五星酒店'
+    },
+    { 
+      id: 2, 
+      image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&h=400&fit=crop',
+      hotelId: '2',
+      title: '精品商务酒店'
+    },
+    { 
+      id: 3, 
+      image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&h=400&fit=crop',
+      hotelId: '3',
+      title: '海景度假酒店'
+    }
+  ];
 
   // 星级选项
   const starOptions = ['不限', '三星级', '四星级', '五星级'];
@@ -21,13 +43,40 @@ export default function Index() {
   // 快捷标签
   const quickTags = ['亲子', '豪华', '免费停车', '游泳池', '健身房', '商务', '度假', '温泉'];
 
-  // 推荐目的地
+  // 推荐目的地（使用 Unsplash 免费图片）
   const destinations = [
-    { id: 1, name: '北京', image: 'https://via.placeholder.com/300x200/667eea/ffffff?text=Beijing', desc: '历史文化名城' },
-    { id: 2, name: '上海', image: 'https://via.placeholder.com/300x200/764ba2/ffffff?text=Shanghai', desc: '国际大都市' },
-    { id: 3, name: '杭州', image: 'https://via.placeholder.com/300x200/f093fb/ffffff?text=Hangzhou', desc: '人间天堂' },
-    { id: 4, name: '成都', image: 'https://via.placeholder.com/300x200/4facfe/ffffff?text=Chengdu', desc: '休闲之都' }
+    { 
+      id: 1, 
+      name: '北京', 
+      image: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=600&h=400&fit=crop',
+      desc: '历史文化名城' 
+    },
+    { 
+      id: 2, 
+      name: '上海', 
+      image: 'https://images.unsplash.com/photo-1548919973-5cef591cdbc9?w=600&h=400&fit=crop',
+      desc: '国际大都市' 
+    },
+    { 
+      id: 3, 
+      name: '杭州', 
+      image: 'https://images.unsplash.com/photo-1559564484-e48bf5f6c69b?w=600&h=400&fit=crop',
+      desc: '人间天堂' 
+    },
+    { 
+      id: 4, 
+      name: '成都', 
+      image: 'https://images.unsplash.com/photo-1590859808308-3d2d9c515b1a?w=600&h=400&fit=crop',
+      desc: '休闲之都' 
+    }
   ];
+
+  // Banner 点击跳转
+  const handleBannerClick = (hotelId) => {
+    Taro.navigateTo({
+      url: `/pages/detail/index?id=${hotelId}`
+    });
+  };
 
   // 获取当前定位
   const handleGetLocation = () => {
@@ -43,20 +92,9 @@ export default function Index() {
       },
       fail: () => {
         Taro.showToast({
-          title: '定位失败，请手动选择',
+          title: '定位失败，请手动输入',
           icon: 'none'
         });
-      }
-    });
-  };
-
-  // 选择城市
-  const handleSelectCity = () => {
-    Taro.showActionSheet({
-      itemList: ['北京', '上海', '广州', '深圳', '杭州', '成都', '重庆', '西安'],
-      success: (res) => {
-        const cities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '重庆', '西安'];
-        setLocation(cities[res.tapIndex]);
       }
     });
   };
@@ -81,9 +119,9 @@ export default function Index() {
 
   // 搜索
   const handleSearch = () => {
-    if (!location || location === '当前定位') {
+    if (!location) {
       Taro.showToast({
-        title: '请选择目的地',
+        title: '请输入目的地',
         icon: 'none'
       });
       return;
@@ -118,11 +156,35 @@ export default function Index() {
 
   return (
     <View className="index-page">
+      {/* 顶部 Banner 轮播 */}
+      <View className="banner-section">
+        <Swiper 
+          className="banner-swiper" 
+          autoplay 
+          circular 
+          interval={5000}
+          indicatorDots 
+          indicatorColor="rgba(255,255,255,0.5)" 
+          indicatorActiveColor="#fff"
+        >
+          {banners.map((banner) => (
+            <SwiperItem key={banner.id}>
+              <View className="banner-item" onClick={() => handleBannerClick(banner.hotelId)}>
+                <Image src={banner.image} mode="aspectFill" className="banner-image" />
+                <View className="banner-overlay">
+                  <View className="banner-title">{banner.title}</View>
+                </View>
+              </View>
+            </SwiperItem>
+          ))}
+        </Swiper>
+      </View>
+
       {/* 搜索卡片 */}
       <View className="search-card">
         <View className="card-title">开始你的旅程</View>
 
-        {/* 地点选择 */}
+        {/* 地点输入 */}
         <View className="search-item">
           <View className="item-label">
             <View className="label-icon">📍</View>
@@ -130,9 +192,13 @@ export default function Index() {
           </View>
           <View className="item-content">
             <View className="location-row">
-              <View className="location-text" onClick={handleSelectCity}>
-                {location}
-              </View>
+              <input
+                className="location-input"
+                value={location}
+                onInput={(e) => setLocation(e.detail.value)}
+                placeholder="请输入城市名称"
+                placeholderClass="input-placeholder"
+              />
               <View className="locate-btn" onClick={handleGetLocation}>
                 <View className="locate-icon">⊙</View>
                 <View className="locate-text">定位</View>
