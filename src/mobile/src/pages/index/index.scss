@@ -1,25 +1,75 @@
-// 爱彼迎风格 - 首页样式
+// 爱彼迎风格 - 首页样式（增强版）
 .index-page {
   min-height: 100vh;
-  background: #fff;
+  background: linear-gradient(180deg, #f7f7f7 0%, #fff 300rpx);
 }
 
-// 顶部搜索栏
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
+// 搜索卡片
+.search-card {
+  margin: 30rpx;
+  padding: 40rpx;
   background: #fff;
-  padding: 20rpx 30rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+  border-radius: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
 }
 
-.search-bar {
+.card-title {
+  font-size: 48rpx;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 40rpx;
+  letter-spacing: -0.5rpx;
+}
+
+// 搜索项
+.search-item {
+  margin-bottom: 30rpx;
+}
+
+.item-label {
   display: flex;
   align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.label-icon {
+  font-size: 32rpx;
+}
+
+.label-text {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #222;
+}
+
+.item-content {
+  padding: 24rpx 30rpx;
   background: #f7f7f7;
-  border-radius: 50rpx;
-  padding: 20rpx 30rpx;
+  border-radius: 16rpx;
+}
+
+// 地点选择
+.location-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.location-text {
+  flex: 1;
+  font-size: 30rpx;
+  color: #222;
+  font-weight: 500;
+}
+
+.locate-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background: #fff;
+  border-radius: 20rpx;
   transition: all 0.3s;
 
   &:active {
@@ -27,19 +77,163 @@
   }
 }
 
-.search-icon {
-  font-size: 32rpx;
-  margin-right: 20rpx;
+.locate-icon {
+  font-size: 28rpx;
+  color: #FF385C;
 }
 
-.search-input {
-  flex: 1;
-  font-size: 28rpx;
+.locate-text {
+  font-size: 26rpx;
   color: #222;
 }
 
-.search-placeholder {
+// 关键字输入
+.search-input {
+  width: 100%;
+  font-size: 30rpx;
+  color: #222;
+}
+
+.input-placeholder {
   color: #999;
+}
+
+// 日期选择行
+.date-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 30rpx;
+}
+
+.date-item {
+  flex: 1;
+  padding: 24rpx 30rpx;
+  background: #f7f7f7;
+  border-radius: 16rpx;
+  transition: all 0.3s;
+
+  &:active {
+    background: #efefef;
+  }
+}
+
+.date-label {
+  font-size: 24rpx;
+  color: #717171;
+  margin-bottom: 8rpx;
+}
+
+.date-value {
+  font-size: 28rpx;
+  color: #222;
+  font-weight: 500;
+}
+
+.date-divider {
+  font-size: 32rpx;
+  color: #ddd;
+}
+
+// 筛选条件行
+.filter-row {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 30rpx;
+}
+
+.filter-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 30rpx;
+  background: #f7f7f7;
+  border-radius: 16rpx;
+  transition: all 0.3s;
+
+  &:active {
+    background: #efefef;
+  }
+}
+
+.filter-label {
+  font-size: 24rpx;
+  color: #717171;
+}
+
+.filter-value {
+  flex: 1;
+  text-align: center;
+  font-size: 28rpx;
+  color: #222;
+  font-weight: 500;
+}
+
+.filter-arrow {
+  font-size: 20rpx;
+  color: #999;
+}
+
+// 快捷标签
+.tags-section {
+  margin-bottom: 40rpx;
+}
+
+.tags-label {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #222;
+  margin-bottom: 20rpx;
+}
+
+.tags-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.tag-item {
+  padding: 16rpx 32rpx;
+  background: #f7f7f7;
+  border: 2rpx solid transparent;
+  border-radius: 40rpx;
+  font-size: 26rpx;
+  color: #222;
+  transition: all 0.3s;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.tag-active {
+  background: #FFE8EC;
+  border-color: #FF385C;
+  color: #FF385C;
+  font-weight: 500;
+}
+
+// 搜索按钮
+.search-btn {
+  width: 100%;
+  padding: 28rpx;
+  background: linear-gradient(135deg, #FF385C 0%, #E31C5F 100%);
+  border-radius: 16rpx;
+  text-align: center;
+  transition: all 0.3s;
+  box-shadow: 0 4rpx 12rpx rgba(255, 56, 92, 0.3);
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 2rpx 8rpx rgba(255, 56, 92, 0.3);
+  }
+}
+
+.btn-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
 }
 
 // 主内容区
@@ -58,38 +252,6 @@
   color: #222;
   margin-bottom: 30rpx;
   letter-spacing: -0.5rpx;
-}
-
-// 酒店类型网格
-.type-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20rpx;
-}
-
-.type-card {
-  background: #fff;
-  border: 2rpx solid #ddd;
-  border-radius: 24rpx;
-  padding: 40rpx 30rpx;
-  text-align: center;
-  transition: all 0.3s;
-
-  &:active {
-    transform: scale(0.98);
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
-  }
-}
-
-.type-icon {
-  font-size: 60rpx;
-  margin-bottom: 20rpx;
-}
-
-.type-name {
-  font-size: 28rpx;
-  color: #222;
-  font-weight: 500;
 }
 
 // 目的地列表
