@@ -31,12 +31,19 @@ export const getHotels = async (req, res) => {
     const query = { status: 'published', isDeleted: false };
 
     // 城市模糊搜索（支持"武汉"、"武汉市"等）
-    if (city) {
+    if (city && city !== 'undefined') {
       query.city = { $regex: city.replace(/市$/, ''), $options: 'i' };
     }
     
-    if (starLevel) query.starLevel = parseInt(starLevel);
-    if (keyword) query['name.cn'] = { $regex: keyword, $options: 'i' };
+    // 星级筛选（只有有效数字才添加）
+    if (starLevel && starLevel !== 'undefined' && !isNaN(parseInt(starLevel))) {
+      query.starLevel = parseInt(starLevel);
+    }
+    
+    // 关键字搜索
+    if (keyword && keyword !== 'undefined') {
+      query['name.cn'] = { $regex: keyword, $options: 'i' };
+    }
 
     const hotels = await Hotel.find(query)
       .skip((page - 1) * limit)
@@ -58,7 +65,11 @@ export const getHotels = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('查询酒店失败:', error);
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 

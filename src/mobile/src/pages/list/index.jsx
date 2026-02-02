@@ -25,13 +25,21 @@ export default function List() {
     if (loading) return;
     setLoading(true);
     try {
-      console.log('请求参数:', searchParams);
-      
-      const res = await hotelService.getHotels({
+      // 过滤掉 undefined 和空值
+      const cleanParams = Object.entries({
         ...searchParams,
         page: searchParams.page || page,
         limit: 10
-      });
+      }).reduce((acc, [key, value]) => {
+        if (value !== undefined && value !== null && value !== '' && value !== 'undefined') {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
+      
+      console.log('请求参数:', cleanParams);
+      
+      const res = await hotelService.getHotels(cleanParams);
       
       console.log('返回结果:', res);
       
