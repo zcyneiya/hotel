@@ -88,6 +88,20 @@ export default function List() {
 
   return (
     <View className="list-page">
+      {/* 顶部导航栏 */}
+      <View className="nav-bar">
+        <View className="nav-left" onClick={() => Taro.navigateBack()}>
+          <Text className="back-icon">←</Text>
+        </View>
+        <View className="nav-center">
+          <Text className="nav-title">
+            {params.city && `${params.city} · `}
+            {params.keyword || '酒店列表'}
+          </Text>
+        </View>
+        <View className="nav-right"></View>
+      </View>
+
       {/* 顶部筛选栏 */}
       <View className="filter-bar">
         <View className="filter-item">

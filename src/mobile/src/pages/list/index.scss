@@ -4,6 +4,47 @@
   background: #fff;
 }
 
+// 顶部导航栏
+.nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 88rpx;
+  padding: 0 30rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #ebebeb;
+}
+
+.nav-left {
+  width: 80rpx;
+  display: flex;
+  align-items: center;
+}
+
+.back-icon {
+  font-size: 44rpx;
+  color: #222;
+  font-weight: 300;
+}
+
+.nav-center {
+  flex: 1;
+  text-align: center;
+}
+
+.nav-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #222;
+}
+
+.nav-right {
+  width: 80rpx;
+}
+
 // 筛选栏
 .filter-bar {
   position: sticky;
@@ -44,7 +85,7 @@
 
 // 滚动容器
 .scroll-view {
-  height: calc(100vh - 100rpx);
+  height: calc(100vh - 188rpx);
 }
 
 // 酒店列表
