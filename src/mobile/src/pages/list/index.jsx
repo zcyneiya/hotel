@@ -13,7 +13,23 @@ export default function List() {
 
   useEffect(() => {
     const instance = Taro.getCurrentInstance();
-    const { city, keyword, checkIn, checkOut, starLevel, priceRange, tags } = instance.router.params;
+    let { city, keyword, checkIn, checkOut, starLevel, priceRange, tags } = instance.router.params;
+    
+    // 解码 URL 编码的参数
+    if (city) {
+      try {
+        city = decodeURIComponent(city);
+      } catch (e) {
+        console.log('城市参数解码失败');
+      }
+    }
+    if (keyword) {
+      try {
+        keyword = decodeURIComponent(keyword);
+      } catch (e) {
+        console.log('关键字参数解码失败');
+      }
+    }
     
     console.log('搜索参数:', { city, keyword, checkIn, checkOut, starLevel, priceRange, tags });
     
