@@ -1,146 +1,174 @@
-# React Native 酒店预订应用
+# Hotel Mobile App (React Native + Expo)
 
-这是从 Taro 框架迁移到 React Native 的酒店预订移动端应用。
+酒店预订移动端应用 - 基于 React Native 和 Expo 开发
 
 ## 技术栈
 
-- React Native 0.73+
-- React Navigation 6
+- React Native 0.76.5
+- Expo ~52.0.0
 - TypeScript
-- Axios (API 请求)
+- React Navigation 6
+- Axios
+- Expo Location
 
 ## 项目结构
 
 ```
 src/
-├── navigation/          # 导航配置
+├── screens/          # 页面组件
+│   ├── HomeScreen.tsx       # 首页 - 酒店查询
+│   ├── ListScreen.tsx       # 列表页 - 酒店列表
+│   └── DetailScreen.tsx     # 详情页 - 酒店详情
+├── navigation/       # 导航配置
 │   └── AppNavigator.tsx
-├── screens/            # 页面组件
-│   ├── HomeScreen.tsx  # 首页（搜索 + Banner + 目的地）
-│   ├── ListScreen.tsx  # 列表页（酒店列表 + 筛选）
-│   └── DetailScreen.tsx # 详情页（酒店详情 + 房型）
-├── services/           # API 服务
+├── services/         # API 服务
 │   └── hotelService.ts
-├── utils/              # 工具函数
-│   └── request.ts      # HTTP 请求封装
-└── types/              # TypeScript 类型定义
-    └── hotel.ts
+├── types/           # TypeScript 类型定义
+│   ├── hotel.ts
+│   └── navigation.ts
+├── components/      # 公共组件
+├── constants/       # 常量配置
+│   └── theme.ts
+└── utils/          # 工具函数
 ```
 
-## 功能特性
+## 已实现功能
 
-### 首页
-- 顶部 Banner 轮播广告
-- 搜索表单（目的地、关键字、日期、星级、价格）
-- 快捷标签筛选
-- 热门目的地推荐
+### 1. 首页 (HomeScreen)
+- ✅ Banner 轮播 - 点击跳转酒店详情页
+- ✅ 定位功能 - 获取当前城市
+- ✅ 目的地搜索
+- ✅ 关键字搜索
+- ✅ 日期选择（UI 已完成，待实现日历组件）
+- ✅ 快捷标签筛选（亲子、豪华等）
+- ✅ 热门目的地展示
 
-### 列表页
-- 酒店列表展示
-- 下拉刷新
-- 上拉加载更多
-- 顶部筛选栏
-- 收藏功能
+### 2. 列表页 (ListScreen)
+- ✅ 显示查询信息（城市、日期等）
+- ✅ 酒店卡片展示
+- ✅ 显示附近景点、交通、商场
+- ✅ 价格显示（最低价 + "起"字）
+- ✅ 上滑自动加载更多
+- ✅ 下拉刷新
+- ⏳ 筛选功能（价格、评分、设施下拉选择）
 
-### 详情页
-- 酒店图片轮播
-- 基本信息展示
-- 设施服务列表
-- 房型列表及价格
-- 预订功能
+### 3. 详情页 (DetailScreen)
+- ✅ 图片轮播展示
+- ✅ 酒店基本信息
+- ✅ 开业时间显示
+- ✅ 附近景点、交通、商场
+- ✅ 选择日历、人数、间数 Banner（UI 已完成）
+- ✅ 设施与服务
+- ✅ 房型列表（从低到高排序）
+- ✅ 房间数量提示（少于3间时提示）
+- ✅ 住客评价区（Mock 数据）
+- ⏳ 地图显示（可选）
+
+## 待完成功能
+
+### 高优先级
+1. 日历组件实现（入住/离店日期选择）
+2. 筛选功能完善（价格、评分、设施下拉选择）
+3. 详情页日历、人数、间数选择功能
+4. 与后端 API 对接
+
+### 中优先级
+1. 地图显示功能
+2. 收藏功能实现
+3. 预订流程完善
+4. 用户登录/注册
+
+### 低优先级
+1. 搜索历史
+2. 分享功能
+3. 优惠券/折扣展示
 
 ## 安装依赖
 
 ```bash
 cd src/mobile-rn
 npm install
-# 或
-yarn install
-```
-
-## iOS 配置
-
-```bash
-cd ios
-pod install
-cd ..
 ```
 
 ## 运行项目
 
-### Android
 ```bash
-npm run android
-```
+# 启动开发服务器
+npm start
 
-### iOS
-```bash
+# 在 iOS 模拟器运行
 npm run ios
+
+# 在 Android 模拟器运行
+npm run android
+
+# 在浏览器运行
+npm run web
 ```
 
 ## API 配置
 
-默认 API 地址：`http://localhost:3000/api`
-
-可在 `src/utils/request.ts` 中修改：
+修改 `src/services/hotelService.ts` 中的 API 地址：
 
 ```typescript
-const BASE_URL = __DEV__
-  ? 'http://localhost:3000/api'
-  : 'https://your-production-api.com/api';
+const API_BASE_URL = 'http://your-api-url:3000/api';
 ```
 
-## 开发说明
+## 数据结构
 
-### 添加新页面
+### Hotel 类型
+```typescript
+interface Hotel {
+  _id: string;
+  name: { cn: string; en: string } | string;
+  address: string;
+  city: string;
+  starLevel: number;
+  type: string;
+  rating: number;
+  images: string[];
+  facilities: string[];
+  rooms: Room[];
+  nearbyAttractions?: string[];
+  nearbyTransport?: string[];
+  nearbyMalls?: string[];
+  openingDate?: string;
+  location?: { lat: number; lng: number };
+  reviews?: Review[];
+  originalPrice?: number;
+}
+```
 
-1. 在 `src/screens/` 创建新的页面组件
-2. 在 `src/navigation/AppNavigator.tsx` 中注册路由
-3. 更新 `RootStackParamList` 类型定义
-
-### 添加新的 API 服务
-
-1. 在 `src/types/` 定义数据类型
-2. 在 `src/services/` 创建服务文件
-3. 使用 `request` 工具发起请求
-
-## UI 设计
-
-采用爱彼迎（Airbnb）风格设计：
-- 主色调：#FF385C（粉红色）
-- 圆角卡片设计
-- 简洁的图标和排版
-- 流畅的动画过渡
+### Room 类型
+```typescript
+interface Room {
+  type: string;
+  price: number;
+  area?: number;
+  capacity: number;
+  count: number;
+  availableCount: number;
+  facilities: string[];
+}
+```
 
 ## 注意事项
 
-1. 确保后端 API 服务已启动（端口 3000）
-2. iOS 需要配置网络权限（Info.plist）
-3. Android 需要配置网络权限（AndroidManifest.xml）
-4. 图片资源使用 Unsplash 免费图片
+1. 需要配置后端 API 地址
+2. iOS 需要在 Info.plist 中配置位置权限
+3. Android 需要在 AndroidManifest.xml 中配置位置权限
+4. 图片资源使用在线 URL，确保网络连接
 
-## 与 Taro 版本对比
+## 开发规范
 
-| 特性 | Taro | React Native |
-|------|------|--------------|
-| 框架 | Taro 3.x | React Native 0.73+ |
-| 导航 | Taro.navigateTo | React Navigation |
-| 组件 | Taro Components | React Native Components |
-| 样式 | SCSS | StyleSheet |
-| 请求 | Taro.request | Axios |
-| 状态管理 | React Hooks | React Hooks |
+- 使用 TypeScript 进行类型检查
+- 遵循 React Hooks 最佳实践
+- 组件拆分遵循单一职责原则
+- 样式使用 StyleSheet.create
+- 异步操作使用 async/await
 
-## 后续优化
+## 相关文档
 
-- [ ] 添加日期选择器组件
-- [ ] 实现筛选功能
-- [ ] 添加地图定位
-- [ ] 集成支付功能
-- [ ] 添加用户登录
-- [ ] 优化图片加载性能
-- [ ] 添加骨架屏加载
-- [ ] 实现离线缓存
-
-## License
-
-MIT
+- [React Native 文档](https://reactnative.dev/)
+- [Expo 文档](https://docs.expo.dev/)
+- [React Navigation 文档](https://reactnavigation.org/)

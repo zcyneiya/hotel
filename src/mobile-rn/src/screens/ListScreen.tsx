@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,15 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Dimensions,
 } from 'react-native';
-import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../navigation/AppNavigator';
-import {hotelService} from '../services/hotelService';
-import {Hotel} from '../types/hotel';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
+import { hotelService } from '../services/hotelService';
+import { Hotel } from '../types/hotel';
+
+const { width } = Dimensions.get('window');
 
 type ListScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -36,7 +39,7 @@ const ListScreen = () => {
 
   const fetchHotels = async (pageNum: number) => {
     if (loading) return;
-    
+
     setLoading(true);
     try {
       const params = {
@@ -46,13 +49,13 @@ const ListScreen = () => {
       };
 
       const response = await hotelService.getHotels(params);
-      
+
       if (pageNum === 1) {
         setHotels(response.data.hotels);
       } else {
         setHotels([...hotels, ...response.data.hotels]);
       }
-      
+
       setHasMore(response.data.pagination.page < response.data.pagination.pages);
       setPage(pageNum);
     } catch (error: any) {
@@ -78,7 +81,7 @@ const ListScreen = () => {
   };
 
   const goToDetail = (id: string) => {
-    navigation.navigate('Detail', {id});
+    navigation.navigate('Detail', { id });
   };
 
   const handleFavorite = (hotelId: string) => {
@@ -92,59 +95,74 @@ const ListScreen = () => {
     return name.cn || name.en || '未知酒店';
   };
 
-  const renderHotelCard = ({item}: {item: Hotel}) => (
-    <TouchableOpacity
-      style={styles.hotelCard}
-      onPress={() => goToDetail(item._id)}
-      activeOpacity={0.8}>
-      <View style={styles.imageContainer}>
-        <Image
-          source={{
-            uri: item.images?.[0] || 'https://via.placeholder.com/690x460/667eea/ffffff?text=Hotel',
-          }}
-          style={styles.hotelImage}
-        />
-        <TouchableOpacity
-          style={styles.favoriteBtn}
-          onPress={() => handleFavorite(item._id)}>
-          <Text style={styles.heartIcon}>♡</Text>
-        </TouchableOpacity>
-      </View>
+  const renderHotelCard = ({ item }: { item: Hotel }) => {
+    const minPrice = item.rooms && item.rooms.length > 0
+      ? Math.min(...item.rooms.map(r => r.price))
+      : 299;
+    const hasMultipleRooms = item.rooms && item.rooms.length > 1;
+    const nearbyInfo = [
+      ...(item.nearbyAttractions || []),
+      ...(item.nearbyTransport || []),
+      ...(item.nearbyMalls || [])
+    ].slice(0, 2).join(' · ');
 
-      <View style={styles.hotelInfo}>
-        <View style={styles.infoRow}>
-          <Text style={styles.hotelName} numberOfLines={1}>
-            {getHotelName(item.name)}
-          </Text>
-          <View style={styles.rating}>
-            <Text style={styles.starIcon}>★</Text>
-            <Text style={styles.ratingText}>{item.rating || '4.8'}</Text>
-          </View>
+    return (
+      <TouchableOpacity
+        style={styles.hotelCard}
+        onPress={() => goToDetail(item._id)}
+        activeOpacity={0.8}>
+        <View style={styles.imageContainer}>
+          <Image
+            source={{
+              uri: item.images?.[0] || 'https://via.placeholder.com/690x460/667eea/ffffff?text=Hotel',
+            }}
+            style={styles.hotelImage}
+          />
+          <TouchableOpacity
+            style={styles.favoriteBtn}
+            onPress={() => handleFavorite(item._id)}>
+            <Text style={styles.heartIcon}>♡</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.hotelTags}>
-          <Text style={styles.tag}>{'⭐'.repeat(item.starLevel || 4)}</Text>
-          <Text style={styles.tagDivider}>·</Text>
-          <Text style={styles.tag}>{item.type || '精品酒店'}</Text>
-        </View>
-
-        <Text style={styles.address} numberOfLines={1}>
-          {item.address || '市中心'}
-        </Text>
-
-        <View style={styles.priceRow}>
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceLabel}>¥</Text>
-            <Text style={styles.price}>{item.rooms?.[0]?.price || 299}</Text>
-            <Text style={styles.priceUnit}>/晚</Text>
+        <View style={styles.hotelInfo}>
+          <View style={styles.infoRow}>
+            <Text style={styles.hotelName} numberOfLines={1}>
+              {getHotelName(item.name)}
+            </Text>
+            <View style={styles.rating}>
+              <Text style={styles.starIcon}>★</Text>
+              <Text style={styles.ratingText}>{item.rating || '4.8'}</Text>
+            </View>
           </View>
-          {item.originalPrice && (
-            <Text style={styles.originalPrice}>¥{item.originalPrice}</Text>
+
+          <View style={styles.hotelTags}>
+            <Text style={styles.tag}>{'⭐'.repeat(item.starLevel || 4)}</Text>
+            <Text style={styles.tagDivider}>·</Text>
+            <Text style={styles.tag}>{item.type || '精品酒店'}</Text>
+          </View>
+
+          {nearbyInfo && (
+            <Text style={styles.nearbyInfo} numberOfLines={1}>
+              📍 {nearbyInfo}
+            </Text>
           )}
+
+          <View style={styles.priceRow}>
+            <View style={styles.priceContainer}>
+              <Text style={styles.priceLabel}>¥</Text>
+              <Text style={styles.price}>{minPrice}</Text>
+              {hasMultipleRooms && <Text style={styles.priceUnit}>起</Text>}
+              <Text style={styles.priceUnit}>/晚</Text>
+            </View>
+            {item.originalPrice && (
+              <Text style={styles.originalPrice}>¥{item.originalPrice}</Text>
+            )}
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderFooter = () => {
     if (!loading) return null;
@@ -168,7 +186,7 @@ const ListScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 顶部导航栏 */}
+      {/* 顶部导航栏 - 显示查询信息 */}
       <View style={styles.navBar}>
         <TouchableOpacity
           style={styles.navLeft}
@@ -177,14 +195,18 @@ const ListScreen = () => {
         </TouchableOpacity>
         <View style={styles.navCenter}>
           <Text style={styles.navTitle} numberOfLines={1}>
-            {route.params?.city && `${route.params.city} · `}
-            {route.params?.keyword || '酒店列表'}
+            {route.params?.city || '酒店列表'}
           </Text>
+          {(route.params?.checkIn || route.params?.checkOut) && (
+            <Text style={styles.navSubtitle} numberOfLines={1}>
+              {route.params.checkIn} - {route.params.checkOut}
+            </Text>
+          )}
         </View>
         <View style={styles.navRight} />
       </View>
 
-      {/* 顶部筛选栏 */}
+      {/* 顶部筛选栏 - TODO: 实现下拉选择功能 */}
       <View style={styles.filterBar}>
         <TouchableOpacity style={styles.filterItem}>
           <Text style={styles.filterText}>价格</Text>
@@ -200,7 +222,7 @@ const ListScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* 酒店列表 */}
+      {/* 酒店列表 - 支持上滑自动加载 */}
       <FlatList
         data={hotels}
         renderItem={renderHotelCard}
@@ -226,9 +248,11 @@ const styles = StyleSheet.create({
   navBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 56,
+    minHeight: 56,
     backgroundColor: '#fff',
     paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -249,6 +273,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
+  },
+  navSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
   navRight: {
     width: 40,
@@ -285,7 +314,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
@@ -362,8 +391,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#ccc',
   },
-  address: {
-    fontSize: 14,
+  nearbyInfo: {
+    fontSize: 13,
     color: '#666',
     marginBottom: 12,
   },
@@ -389,8 +418,8 @@ const styles = StyleSheet.create({
   },
   priceUnit: {
     fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
+    color: '#FF385C',
+    marginLeft: 2,
   },
   originalPrice: {
     fontSize: 14,

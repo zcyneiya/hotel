@@ -1,14 +1,33 @@
-import request from '../utils/request';
-import {HotelListParams, HotelListResponse, HotelDetailResponse} from '../types/hotel';
+import axios from 'axios';
+import { SearchParams } from '../types/hotel';
+
+const API_BASE_URL = 'http://localhost:3000/api';
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export const hotelService = {
-  // 获取酒店列表
-  getHotels: (params: HotelListParams): Promise<HotelListResponse> => {
-    return request.get('/hotels', {params});
+  getHotels: async (params: SearchParams) => {
+    const response = await apiClient.get('/hotels', { params });
+    return response.data;
   },
 
-  // 获取酒店详情
-  getHotelById: (id: string): Promise<HotelDetailResponse> => {
-    return request.get(`/hotels/${id}`);
+  getHotelById: async (id: string) => {
+    const response = await apiClient.get(`/hotels/${id}`);
+    return response.data;
+  },
+
+  searchHotels: async (keyword: string) => {
+    const response = await apiClient.get('/hotels/search', {
+      params: { keyword },
+    });
+    return response.data;
   },
 };
+
+export default apiClient;

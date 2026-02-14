@@ -1,8 +1,8 @@
 export interface Hotel {
   _id: string;
   name: {
-    cn?: string;
-    en?: string;
+    cn: string;
+    en: string;
   } | string;
   address: string;
   city: string;
@@ -12,6 +12,15 @@ export interface Hotel {
   images: string[];
   facilities: string[];
   rooms: Room[];
+  nearbyAttractions?: string[];
+  nearbyTransport?: string[];
+  nearbyMalls?: string[];
+  openingDate?: string;
+  location?: {
+    lat: number;
+    lng: number;
+  };
+  reviews?: Review[];
   originalPrice?: number;
 }
 
@@ -19,11 +28,23 @@ export interface Room {
   type: string;
   price: number;
   area?: number;
+  capacity: number;
+  count: number;
+  availableCount: number;
   facilities: string[];
-  available: boolean;
 }
 
-export interface HotelListParams {
+export interface Review {
+  id: string;
+  userName: string;
+  avatar?: string;
+  rating: number;
+  content: string;
+  date: string;
+  images?: string[];
+}
+
+export interface SearchParams {
   city?: string;
   keyword?: string;
   checkIn?: string;
@@ -33,21 +54,4 @@ export interface HotelListParams {
   tags?: string;
   page?: number;
   limit?: number;
-}
-
-export interface HotelListResponse {
-  success: boolean;
-  data: {
-    hotels: Hotel[];
-    pagination: {
-      page: number;
-      pages: number;
-      total: number;
-    };
-  };
-}
-
-export interface HotelDetailResponse {
-  success: boolean;
-  data: Hotel;
 }

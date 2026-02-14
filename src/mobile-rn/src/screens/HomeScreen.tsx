@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,12 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../navigation/AppNavigator';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
+import * as Location from 'expo-location';
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -27,11 +28,9 @@ const HomeScreen = () => {
   const [keyword, setKeyword] = useState('');
   const [checkInDate, setCheckInDate] = useState('');
   const [checkOutDate, setCheckOutDate] = useState('');
-  const [starLevel, setStarLevel] = useState('不限');
-  const [priceRange, setPriceRange] = useState('不限');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  // Banner 数据
+  // Banner 数据 - 点击跳转到酒店详情页
   const banners = [
     {
       id: 1,
@@ -53,7 +52,7 @@ const HomeScreen = () => {
     },
   ];
 
-  // 快捷标签
+  // 快捷标签 - 对应数据库中的酒店标签
   const quickTags = ['亲子', '豪华', '免费停车', '游泳池', '健身房', '商务', '度假', '温泉'];
 
   // 推荐目的地
@@ -84,9 +83,34 @@ const HomeScreen = () => {
     },
   ];
 
-  // Banner 点击
+  // 获取当前位置
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('提示', '需要位置权限才能使用定位功能');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const address = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (address.length > 0) {
+        const city = address[0].city || address[0].region || '';
+        setLocation(city);
+        Alert.alert('定位成功', `当前位置: ${city}`);
+      }
+    } catch (error) {
+      Alert.alert('定位失败', '无法获取当前位置');
+    }
+  };
+
+  // Banner 点击 - 跳转到酒店详情页
   const handleBannerClick = (hotelId: string) => {
-    navigation.navigate('Detail', {id: hotelId});
+    navigation.navigate('Detail', { id: hotelId });
   };
 
   // 标签切换
@@ -110,20 +134,18 @@ const HomeScreen = () => {
       keyword,
       checkIn: checkInDate,
       checkOut: checkOutDate,
-      starLevel: starLevel !== '不限' ? starLevel : undefined,
-      priceRange: priceRange !== '不限' ? priceRange : undefined,
       tags: selectedTags.join(','),
     });
   };
 
   // 快速跳转到城市
   const goToCity = (city: string) => {
-    navigation.navigate('List', {city});
+    navigation.navigate('List', { city });
   };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Banner 轮播 */}
+      {/* Banner 轮播 - 点击跳转酒店详情 */}
       <View style={styles.bannerSection}>
         <ScrollView
           horizontal
@@ -135,7 +157,7 @@ const HomeScreen = () => {
               key={banner.id}
               onPress={() => handleBannerClick(banner.hotelId)}
               activeOpacity={0.9}>
-              <Image source={{uri: banner.image}} style={styles.bannerImage} />
+              <Image source={{ uri: banner.image }} style={styles.bannerImage} />
               <View style={styles.bannerOverlay}>
                 <Text style={styles.bannerTitle}>{banner.title}</Text>
               </View>
@@ -148,7 +170,7 @@ const HomeScreen = () => {
       <View style={styles.searchCard}>
         <Text style={styles.cardTitle}>开始你的旅程</Text>
 
-        {/* 目的地输入 */}
+        {/* 目的地输入 - 支持定位 */}
         <View style={styles.searchItem}>
           <View style={styles.itemLabel}>
             <Text style={styles.labelIcon}>📍</Text>
@@ -162,6 +184,11 @@ const HomeScreen = () => {
               placeholder="请输入城市名称"
               placeholderTextColor="#999"
             />
+            <TouchableOpacity
+              style={styles.locationBtn}
+              onPress={getCurrentLocation}>
+              <Text style={styles.locationIcon}>📍</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -182,7 +209,7 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* 日期选择 */}
+        {/* 日期选择 - TODO: 实现日历组件 */}
         <View style={styles.dateRow}>
           <TouchableOpacity style={styles.dateItem}>
             <Text style={styles.dateLabel}>入住</Text>
@@ -199,7 +226,7 @@ const HomeScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* 快捷标签 */}
+        {/* 快捷标签 - 对应数据库标签 */}
         <View style={styles.tagsSection}>
           <Text style={styles.tagsLabel}>快捷筛选</Text>
           <View style={styles.tagsGrid}>
@@ -240,7 +267,7 @@ const HomeScreen = () => {
               onPress={() => goToCity(dest.name)}
               activeOpacity={0.8}>
               <Image
-                source={{uri: dest.image}}
+                source={{ uri: dest.image }}
                 style={styles.destImage}
               />
               <View style={styles.destOverlay}>
@@ -297,7 +324,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
@@ -329,11 +356,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
     borderRadius: 8,
     paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   input: {
+    flex: 1,
     height: 44,
     fontSize: 15,
     color: '#333',
+  },
+  locationBtn: {
+    padding: 8,
+  },
+  locationIcon: {
+    fontSize: 20,
   },
   dateRow: {
     flexDirection: 'row',
