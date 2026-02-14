@@ -129,7 +129,7 @@ export const offlineHotel = async (req, res) => {
     hotel.isDeleted = true;
     hotel.offlineDate = new Date();
     hotel.offlineReason = reason || '管理员下线';
-    await hotel.save();
+    await hotel.save({ validateBeforeSave: false });
 
     // 记录审核日志
     await Audit.create({
@@ -188,7 +188,7 @@ export const restoreHotel = async (req, res) => {
     hotel.isDeleted = false;
     hotel.offlineDate = null;
     hotel.offlineReason = null;
-    await hotel.save();
+    await hotel.save({ validateBeforeSave: false });
 
     // 记录审核日志
     await Audit.create({
