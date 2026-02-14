@@ -21,8 +21,10 @@ export const hotelService = {
 export const auditService = {
   getPendingHotels: () => api.get('/audits/hotels/pending'),
   getAllHotels: (params) => api.get('/audits/hotels', { params }),
+  getOfflineHotels: () => api.get('/audits/hotels/offline'),
   approveHotel: (id) => api.post(`/audits/hotels/${id}/approve`),
   rejectHotel: (id, reason) => api.post(`/audits/hotels/${id}/reject`, { reason }),
-  offlineHotel: (id) => api.post(`/audits/hotels/${id}/offline`),
+  offlineHotel: (id, data) => api.post(`/audits/hotels/${id}/offline`, data),
+  restoreHotel: (id) => api.post(`/audits/hotels/${id}/restore`),
   getAuditLogs: (hotelId) => api.get(`/audits/hotels/${hotelId}/logs`)
 };

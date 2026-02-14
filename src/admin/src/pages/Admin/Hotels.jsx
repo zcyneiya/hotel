@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Select, Space, Button, Modal, message } from 'antd';
+import { Table, Tag, Select, Space, Button, Modal, message, Input } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import { auditService } from '../../services/api';
 
@@ -36,9 +36,31 @@ function AdminHotels() {
     Modal.confirm({
       title: '确认下线？',
       content: '下线后用户端将不再展示该酒店',
+      okText: '确认',
+      cancelText: '取消',
       onOk: async () => {
+        const reason = await new Promise((resolve) => {
+          Modal.confirm({
+            title: '请输入下线原因',
+            content: (
+              <Input.TextArea
+                id="offlineReason"
+                placeholder="请输入下线原因"
+                rows={4}
+              />
+            ),
+            onOk: () => {
+              const reasonInput = document.getElementById('offlineReason');
+              resolve(reasonInput?.value || '管理员下线');
+            },
+            onCancel: () => resolve(null)
+          });
+        });
+
+        if (reason === null) return;
+
         try {
-          await auditService.offlineHotel(id);
+          await auditService.offlineHotel(id, { reason });
           message.success('已下线');
           fetchHotels();
         } catch (error) {

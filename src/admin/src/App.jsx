@@ -8,6 +8,7 @@ import HotelForm from './pages/Merchant/HotelForm';
 import AdminLayout from './pages/Admin/Layout';
 import AdminHotels from './pages/Admin/Hotels';
 import AdminAudit from './pages/Admin/Audit';
+import OfflineHotels from './pages/Admin/OfflineHotels';
 import { useAuthStore } from './store/authStore';
 
 function PrivateRoute({ children, requiredRole }) {
@@ -57,6 +58,7 @@ function App() {
         <Route index element={<Navigate to="/admin/audit" />} />
         <Route path="audit" element={<AdminAudit />} />
         <Route path="hotels" element={<AdminHotels />} />
+        <Route path="offline" element={<OfflineHotels />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/login" />} />
