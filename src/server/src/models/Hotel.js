@@ -118,7 +118,6 @@ const hotelSchema = new mongoose.Schema({
       }
     }]
   },
-  nearbyAttractions: [String],
   isDeleted: {
     type: Boolean,
     default: false

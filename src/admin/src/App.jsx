@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import MerchantLayout from './pages/Merchant/Layout';
 import MerchantHotels from './pages/Merchant/Hotels';
 import HotelForm from './pages/Merchant/HotelForm';
+import HotelView from './pages/Merchant/HotelView';
 import AdminLayout from './pages/Admin/Layout';
 import AdminHotels from './pages/Admin/Hotels';
 import AdminAudit from './pages/Admin/Audit';
@@ -44,6 +45,7 @@ function App() {
         <Route path="hotels" element={<MerchantHotels />} />
         <Route path="hotels/new" element={<HotelForm />} />
         <Route path="hotels/edit/:id" element={<HotelForm />} />
+        <Route path="hotels/view/:id" element={<HotelView />} />
       </Route>
 
       {/* 管理员路由 */}

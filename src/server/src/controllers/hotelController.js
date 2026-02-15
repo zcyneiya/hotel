@@ -1,6 +1,20 @@
 import Hotel from '../models/Hotel.js';
 import Audit from '../models/Audit.js';
 
+// 转换 nearby 数据为移动端格式
+const transformNearbyData = (hotel) => {
+  const hotelObj = hotel.toObject ? hotel.toObject() : hotel;
+  
+  // 如果有 nearby 对象，转换为移动端需要的格式
+  if (hotelObj.nearby) {
+    hotelObj.nearbyAttractions = hotelObj.nearby.attractions?.map(a => a.name) || [];
+    hotelObj.nearbyTransport = hotelObj.nearby.transportation?.map(t => t.name) || [];
+    hotelObj.nearbyMalls = hotelObj.nearby.shopping?.map(s => s.name) || [];
+  }
+  
+  return hotelObj;
+};
+
 // 创建酒店
 export const createHotel = async (req, res) => {
   try {
@@ -68,10 +82,13 @@ export const getHotels = async (req, res) => {
 
     const total = await Hotel.countDocuments(query);
 
+    // 转换数据格式
+    const transformedHotels = hotels.map(hotel => transformNearbyData(hotel));
+
     res.json({
       success: true,
       data: {
-        hotels,
+        hotels: transformedHotels,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -98,9 +115,12 @@ export const getHotelById = async (req, res) => {
       return res.status(404).json({ message: '酒店不存在' });
     }
 
+    // 转换数据格式
+    const transformedHotel = transformNearbyData(hotel);
+
     res.json({
       success: true,
-      data: hotel
+      data: transformedHotel
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
