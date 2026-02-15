@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { hotelService } from '../services/hotelService';
 import { Hotel } from '../types/hotel';
+import DateRangePicker from '../components/DateRangePicker';
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +32,11 @@ const DetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [checkInDate, setCheckInDate] = useState('');
+  const [checkOutDate, setCheckOutDate] = useState('');
+  const [guestCount, setGuestCount] = useState(2);
+  const [roomCount, setRoomCount] = useState(1);
 
   useEffect(() => {
     fetchHotel();
@@ -68,6 +74,20 @@ const DetailScreen = () => {
       return name;
     }
     return name.cn || name.en || '未知酒店';
+  };
+
+  // 处理日期选择
+  const handleDateConfirm = (checkIn: string, checkOut: string) => {
+    setCheckInDate(checkIn);
+    setCheckOutDate(checkOut);
+  };
+
+  // 格式化日期显示
+  const formatDateDisplay = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[1]}月${parts[2]}日`;
   };
 
   if (loading) {
@@ -230,21 +250,69 @@ const DetailScreen = () => {
         {/* 分隔线 */}
         <View style={styles.dividerLine} />
 
-        {/* TODO: 选择日历、人数、间数 Banner */}
+        {/* 选择日历、人数、间数 Banner */}
         <View style={styles.bookingBanner}>
           <Text style={styles.bannerTitle}>选择入住信息</Text>
           <View style={styles.bannerRow}>
-            <TouchableOpacity style={styles.bannerItem}>
+            <TouchableOpacity 
+              style={styles.bannerItem}
+              onPress={() => setShowDatePicker(true)}>
               <Text style={styles.bannerLabel}>日期</Text>
-              <Text style={styles.bannerValue}>选择日期</Text>
+              <Text style={[styles.bannerValue, (checkInDate && checkOutDate) && styles.bannerValueSelected]}>
+                {checkInDate && checkOutDate 
+                  ? `${formatDateDisplay(checkInDate)} - ${formatDateDisplay(checkOutDate)}`
+                  : '选择日期'}
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.bannerItem}>
+            <TouchableOpacity 
+              style={styles.bannerItem}
+              onPress={() => {
+                Alert.prompt(
+                  '选择人数',
+                  '请输入入住人数',
+                  [
+                    { text: '取消', style: 'cancel' },
+                    { 
+                      text: '确定', 
+                      onPress: (text) => {
+                        const count = parseInt(text || '2');
+                        if (count > 0 && count <= 10) {
+                          setGuestCount(count);
+                        }
+                      }
+                    }
+                  ],
+                  'plain-text',
+                  String(guestCount)
+                );
+              }}>
               <Text style={styles.bannerLabel}>人数</Text>
-              <Text style={styles.bannerValue}>2人</Text>
+              <Text style={styles.bannerValue}>{guestCount}人</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.bannerItem}>
+            <TouchableOpacity 
+              style={styles.bannerItem}
+              onPress={() => {
+                Alert.prompt(
+                  '选择间数',
+                  '请输入房间数量',
+                  [
+                    { text: '取消', style: 'cancel' },
+                    { 
+                      text: '确定', 
+                      onPress: (text) => {
+                        const count = parseInt(text || '1');
+                        if (count > 0 && count <= 5) {
+                          setRoomCount(count);
+                        }
+                      }
+                    }
+                  ],
+                  'plain-text',
+                  String(roomCount)
+                );
+              }}>
               <Text style={styles.bannerLabel}>间数</Text>
-              <Text style={styles.bannerValue}>1间</Text>
+              <Text style={styles.bannerValue}>{roomCount}间</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -352,6 +420,15 @@ const DetailScreen = () => {
         {/* 底部占位 */}
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* 日期选择器 */}
+      <DateRangePicker
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onConfirm={handleDateConfirm}
+        initialCheckIn={checkInDate}
+        initialCheckOut={checkOutDate}
+      />
     </View>
   );
 };
@@ -576,6 +653,9 @@ const styles = StyleSheet.create({
   bannerValue: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#999',
+  },
+  bannerValueSelected: {
     color: '#333',
   },
   facilitiesSection: {

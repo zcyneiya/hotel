@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import * as Location from 'expo-location';
+import DateRangePicker from '../components/DateRangePicker';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ const HomeScreen = () => {
   const [checkInDate, setCheckInDate] = useState('');
   const [checkOutDate, setCheckOutDate] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Banner 数据 - 点击跳转到酒店详情页
   const banners = [
@@ -143,6 +145,20 @@ const HomeScreen = () => {
     navigation.navigate('List', { city });
   };
 
+  // 处理日期选择
+  const handleDateConfirm = (checkIn: string, checkOut: string) => {
+    setCheckInDate(checkIn);
+    setCheckOutDate(checkOut);
+  };
+
+  // 格式化日期显示
+  const formatDateDisplay = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[1]}月${parts[2]}日`;
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Banner 轮播 - 点击跳转酒店详情 */}
@@ -209,19 +225,23 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        {/* 日期选择 - TODO: 实现日历组件 */}
+        {/* 日期选择 */}
         <View style={styles.dateRow}>
-          <TouchableOpacity style={styles.dateItem}>
+          <TouchableOpacity 
+            style={styles.dateItem}
+            onPress={() => setShowDatePicker(true)}>
             <Text style={styles.dateLabel}>入住</Text>
-            <Text style={styles.dateValue}>
-              {checkInDate || '选择日期'}
+            <Text style={[styles.dateValue, checkInDate && styles.dateValueSelected]}>
+              {checkInDate ? formatDateDisplay(checkInDate) : '选择日期'}
             </Text>
           </TouchableOpacity>
           <Text style={styles.dateDivider}>→</Text>
-          <TouchableOpacity style={styles.dateItem}>
+          <TouchableOpacity 
+            style={styles.dateItem}
+            onPress={() => setShowDatePicker(true)}>
             <Text style={styles.dateLabel}>离店</Text>
-            <Text style={styles.dateValue}>
-              {checkOutDate || '选择日期'}
+            <Text style={[styles.dateValue, checkOutDate && styles.dateValueSelected]}>
+              {checkOutDate ? formatDateDisplay(checkOutDate) : '选择日期'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -284,6 +304,15 @@ const HomeScreen = () => {
         <Text style={styles.tipIcon}>✨</Text>
         <Text style={styles.tipText}>发现更多精彩住宿体验</Text>
       </View>
+
+      {/* 日期选择器 */}
+      <DateRangePicker
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onConfirm={handleDateConfirm}
+        initialCheckIn={checkInDate}
+        initialCheckOut={checkOutDate}
+      />
     </ScrollView>
   );
 };
@@ -394,8 +423,11 @@ const styles = StyleSheet.create({
   },
   dateValue: {
     fontSize: 15,
-    color: '#333',
+    color: '#999',
     fontWeight: '500',
+  },
+  dateValueSelected: {
+    color: '#333',
   },
   tagsSection: {
     marginBottom: 20,
