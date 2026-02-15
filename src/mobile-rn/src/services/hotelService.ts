@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { SearchParams } from '../types/hotel';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://192.168.31.219:3000/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

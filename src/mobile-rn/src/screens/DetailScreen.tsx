@@ -274,7 +274,7 @@ const DetailScreen = () => {
                     { text: '取消', style: 'cancel' },
                     { 
                       text: '确定', 
-                      onPress: (text) => {
+                      onPress: (text: string | undefined) => {
                         const count = parseInt(text || '2');
                         if (count > 0 && count <= 10) {
                           setGuestCount(count);
@@ -299,7 +299,7 @@ const DetailScreen = () => {
                     { text: '取消', style: 'cancel' },
                     { 
                       text: '确定', 
-                      onPress: (text) => {
+                      onPress: (text: string | undefined) => {
                         const count = parseInt(text || '1');
                         if (count > 0 && count <= 5) {
                           setRoomCount(count);
