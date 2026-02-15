@@ -9,12 +9,15 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { hotelService } from '../services/hotelService';
 import { Hotel } from '../types/hotel';
+import DateRangePicker from '../components/DateRangePicker';
 
 const { width } = Dimensions.get('window');
 
@@ -33,20 +36,47 @@ const ListScreen = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
+  // 搜索条件
+  const [city, setCity] = useState(route.params?.city || '');
+  const [checkInDate, setCheckInDate] = useState(route.params?.checkIn || '');
+  const [checkOutDate, setCheckOutDate] = useState(route.params?.checkOut || '');
+  const [keyword, setKeyword] = useState(route.params?.keyword || '');
+  const [tags, setTags] = useState(route.params?.tags || '');
+
+  // 筛选条件
+  const [priceRange, setPriceRange] = useState<string>('');
+  const [ratingFilter, setRatingFilter] = useState<string>('');
+  const [facilitiesFilter, setFacilitiesFilter] = useState<string[]>([]);
+
+  // UI 状态
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showPriceFilter, setShowPriceFilter] = useState(false);
+  const [showRatingFilter, setShowRatingFilter] = useState(false);
+  const [showFacilitiesFilter, setShowFacilitiesFilter] = useState(false);
+
   useEffect(() => {
     fetchHotels(1);
-  }, []);
+  }, [priceRange, ratingFilter, facilitiesFilter]);
 
   const fetchHotels = async (pageNum: number) => {
     if (loading) return;
 
     setLoading(true);
     try {
-      const params = {
-        ...route.params,
+      const params: any = {
+        city,
+        keyword,
+        tags,
+        checkIn: checkInDate,
+        checkOut: checkOutDate,
         page: pageNum,
         limit: 10,
       };
+
+      // 添加筛选条件
+      if (priceRange) params.priceRange = priceRange;
+      if (ratingFilter) params.rating = ratingFilter;
+      if (facilitiesFilter.length > 0) params.facilities = facilitiesFilter.join(',');
 
       const response = await hotelService.getHotels(params);
 
@@ -95,11 +125,68 @@ const ListScreen = () => {
     return name.cn || name.en || '未知酒店';
   };
 
+  // 格式化日期显示
+  const formatDateDisplay = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[1]}/${parts[2]}`;
+  };
+
+  // 计算入住天数
+  const calculateNights = (): number => {
+    if (!checkInDate || !checkOutDate) return 0;
+    const checkIn = new Date(checkInDate);
+    const checkOut = new Date(checkOutDate);
+    const diff = checkOut.getTime() - checkIn.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  // 处理日期选择
+  const handleDateConfirm = (checkIn: string, checkOut: string) => {
+    setCheckInDate(checkIn);
+    setCheckOutDate(checkOut);
+    fetchHotels(1);
+  };
+
+  // 价格筛选选项
+  const priceOptions = [
+    { label: '不限', value: '' },
+    { label: '0-200元', value: '0-200' },
+    { label: '200-500元', value: '200-500' },
+    { label: '500-1000元', value: '500-1000' },
+    { label: '1000元以上', value: '1000-' },
+  ];
+
+  // 评分筛选选项
+  const ratingOptions = [
+    { label: '不限', value: '' },
+    { label: '4.5分以上', value: '4.5' },
+    { label: '4.0分以上', value: '4.0' },
+    { label: '3.5分以上', value: '3.5' },
+  ];
+
+  // 设施筛选选项
+  const facilitiesOptions = [
+    '免费WiFi', '免费停车', '游泳池', '健身房', 
+    '餐厅', '会议室', '温泉', '儿童乐园'
+  ];
+
+  const toggleFacility = (facility: string) => {
+    if (facilitiesFilter.includes(facility)) {
+      setFacilitiesFilter(facilitiesFilter.filter(f => f !== facility));
+    } else {
+      setFacilitiesFilter([...facilitiesFilter, facility]);
+    }
+  };
+
   const renderHotelCard = ({ item }: { item: Hotel }) => {
     const minPrice = item.rooms && item.rooms.length > 0
       ? Math.min(...item.rooms.map(r => r.price))
       : 299;
     const hasMultipleRooms = item.rooms && item.rooms.length > 1;
+    
+    // 附近信息：景点、交通、商场
     const nearbyInfo = [
       ...(item.nearbyAttractions || []),
       ...(item.nearbyTransport || []),
@@ -138,13 +225,19 @@ const ListScreen = () => {
 
           <View style={styles.hotelTags}>
             <Text style={styles.tag}>{'⭐'.repeat(item.starLevel || 4)}</Text>
-            <Text style={styles.tagDivider}>·</Text>
-            <Text style={styles.tag}>{item.type || '精品酒店'}</Text>
           </View>
 
+          {/* 附近景点、交通、商场 */}
           {nearbyInfo && (
             <Text style={styles.nearbyInfo} numberOfLines={1}>
               📍 {nearbyInfo}
+            </Text>
+          )}
+
+          {/* 酒店地址 */}
+          {item.address && (
+            <Text style={styles.addressText} numberOfLines={1}>
+              🏠 {item.address}
             </Text>
           )}
 
@@ -184,45 +277,225 @@ const ListScreen = () => {
     );
   };
 
+  // 价格筛选弹窗
+  const renderPriceFilter = () => (
+    <Modal
+      visible={showPriceFilter}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={() => setShowPriceFilter(false)}>
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowPriceFilter(false)}>
+        <View style={styles.filterModal}>
+          <Text style={styles.filterTitle}>价格范围</Text>
+          {priceOptions.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.filterOption,
+                priceRange === option.value && styles.filterOptionActive,
+              ]}
+              onPress={() => {
+                setPriceRange(option.value);
+                setShowPriceFilter(false);
+              }}>
+              <Text
+                style={[
+                  styles.filterOptionText,
+                  priceRange === option.value && styles.filterOptionTextActive,
+                ]}>
+                {option.label}
+              </Text>
+              {priceRange === option.value && (
+                <Text style={styles.checkIcon}>✓</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+  // 评分筛选弹窗
+  const renderRatingFilter = () => (
+    <Modal
+      visible={showRatingFilter}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={() => setShowRatingFilter(false)}>
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowRatingFilter(false)}>
+        <View style={styles.filterModal}>
+          <Text style={styles.filterTitle}>评分筛选</Text>
+          {ratingOptions.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.filterOption,
+                ratingFilter === option.value && styles.filterOptionActive,
+              ]}
+              onPress={() => {
+                setRatingFilter(option.value);
+                setShowRatingFilter(false);
+              }}>
+              <Text
+                style={[
+                  styles.filterOptionText,
+                  ratingFilter === option.value && styles.filterOptionTextActive,
+                ]}>
+                {option.label}
+              </Text>
+              {ratingFilter === option.value && (
+                <Text style={styles.checkIcon}>✓</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+  // 设施筛选弹窗
+  const renderFacilitiesFilter = () => (
+    <Modal
+      visible={showFacilitiesFilter}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowFacilitiesFilter(false)}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.facilitiesModal}>
+          <View style={styles.facilitiesHeader}>
+            <TouchableOpacity onPress={() => setShowFacilitiesFilter(false)}>
+              <Text style={styles.closeBtn}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.facilitiesTitle}>设施筛选</Text>
+            <TouchableOpacity onPress={() => setFacilitiesFilter([])}>
+              <Text style={styles.resetBtn}>重置</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.facilitiesScroll}>
+            <View style={styles.facilitiesGrid}>
+              {facilitiesOptions.map((facility) => (
+                <TouchableOpacity
+                  key={facility}
+                  style={[
+                    styles.facilityTag,
+                    facilitiesFilter.includes(facility) && styles.facilityTagActive,
+                  ]}
+                  onPress={() => toggleFacility(facility)}>
+                  <Text
+                    style={[
+                      styles.facilityTagText,
+                      facilitiesFilter.includes(facility) && styles.facilityTagTextActive,
+                    ]}>
+                    {facility}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+          <View style={styles.facilitiesFooter}>
+            <TouchableOpacity
+              style={styles.confirmBtn}
+              onPress={() => setShowFacilitiesFilter(false)}>
+              <Text style={styles.confirmBtnText}>
+                确定 {facilitiesFilter.length > 0 && `(${facilitiesFilter.length})`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <View style={styles.container}>
-      {/* 顶部导航栏 - 显示查询信息 */}
-      <View style={styles.navBar}>
+      {/* 顶部搜索信息栏 */}
+      <View style={styles.searchBar}>
         <TouchableOpacity
-          style={styles.navLeft}
+          style={styles.backBtn}
           onPress={() => navigation.goBack()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <View style={styles.navCenter}>
-          <Text style={styles.navTitle} numberOfLines={1}>
-            {route.params?.city || '酒店列表'}
-          </Text>
-          {(route.params?.checkIn || route.params?.checkOut) && (
-            <Text style={styles.navSubtitle} numberOfLines={1}>
-              {route.params.checkIn} - {route.params.checkOut}
-            </Text>
-          )}
-        </View>
-        <View style={styles.navRight} />
+        
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.searchInfoScroll}>
+          <View style={styles.searchInfo}>
+            {/* 城市 */}
+            <View style={styles.searchTag}>
+              <Text style={styles.searchTagText}>{city || '全部'}</Text>
+            </View>
+            
+            {/* 日期 */}
+            {checkInDate && checkOutDate ? (
+              <TouchableOpacity 
+                style={styles.searchTag}
+                onPress={() => setShowDatePicker(true)}>
+                <Text style={styles.searchTagText}>
+                  {formatDateDisplay(checkInDate)} - {formatDateDisplay(checkOutDate)}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={styles.searchTag}
+                onPress={() => setShowDatePicker(true)}>
+                <Text style={styles.searchTagText}>选择日期</Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* 入住天数 */}
+            {calculateNights() > 0 && (
+              <View style={styles.searchTag}>
+                <Text style={styles.searchTagText}>{calculateNights()}晚</Text>
+              </View>
+            )}
+            
+            {/* 关键词 */}
+            {keyword && (
+              <View style={styles.searchTag}>
+                <Text style={styles.searchTagText}>{keyword}</Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
       </View>
 
-      {/* 顶部筛选栏 - TODO: 实现下拉选择功能 */}
+      {/* 筛选栏 */}
       <View style={styles.filterBar}>
-        <TouchableOpacity style={styles.filterItem}>
-          <Text style={styles.filterText}>价格</Text>
+        <TouchableOpacity 
+          style={styles.filterItem}
+          onPress={() => setShowPriceFilter(true)}>
+          <Text style={[styles.filterText, priceRange && styles.filterTextActive]}>
+            价格
+          </Text>
           <Text style={styles.filterIcon}>▼</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.filterItem}>
-          <Text style={styles.filterText}>评分</Text>
+        <TouchableOpacity 
+          style={styles.filterItem}
+          onPress={() => setShowRatingFilter(true)}>
+          <Text style={[styles.filterText, ratingFilter && styles.filterTextActive]}>
+            评分
+          </Text>
           <Text style={styles.filterIcon}>▼</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.filterItem}>
-          <Text style={styles.filterText}>设施</Text>
+        <TouchableOpacity 
+          style={styles.filterItem}
+          onPress={() => setShowFacilitiesFilter(true)}>
+          <Text style={[styles.filterText, facilitiesFilter.length > 0 && styles.filterTextActive]}>
+            设施
+            {facilitiesFilter.length > 0 && ` (${facilitiesFilter.length})`}
+          </Text>
           <Text style={styles.filterIcon}>▼</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 酒店列表 - 支持上滑自动加载 */}
+      {/* 酒店列表 */}
       <FlatList
         data={hotels}
         renderItem={renderHotelCard}
@@ -236,6 +509,20 @@ const ListScreen = () => {
         ListEmptyComponent={renderEmpty}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* 筛选弹窗 */}
+      {renderPriceFilter()}
+      {renderRatingFilter()}
+      {renderFacilitiesFilter()}
+
+      {/* 日期选择器 */}
+      <DateRangePicker
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onConfirm={handleDateConfirm}
+        initialCheckIn={checkInDate}
+        initialCheckOut={checkOutDate}
+      />
     </View>
   );
 };
@@ -245,42 +532,43 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  navBar: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 56,
     backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  navLeft: {
-    width: 40,
-    height: 40,
+  backBtn: {
+    width: 36,
+    height: 36,
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   backIcon: {
     fontSize: 24,
     color: '#333',
   },
-  navCenter: {
+  searchInfoScroll: {
     flex: 1,
+  },
+  searchInfo: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  navTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  searchTag: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+  },
+  searchTagText: {
+    fontSize: 13,
     color: '#333',
-  },
-  navSubtitle: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  navRight: {
-    width: 40,
   },
   filterBar: {
     flexDirection: 'row',
@@ -300,6 +588,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     marginRight: 4,
+  },
+  filterTextActive: {
+    color: '#FF385C',
+    fontWeight: '600',
   },
   filterIcon: {
     fontSize: 10,
@@ -386,14 +678,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-  tagDivider: {
-    marginHorizontal: 6,
-    fontSize: 12,
-    color: '#ccc',
-  },
   nearbyInfo: {
     fontSize: 13,
     color: '#666',
+    marginBottom: 6,
+  },
+  addressText: {
+    fontSize: 13,
+    color: '#999',
     marginBottom: 12,
   },
   priceRow: {
@@ -448,6 +740,125 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#999',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterModal: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    width: width * 0.75,
+    maxHeight: 400,
+    padding: 20,
+  },
+  filterTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  filterOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: '#f8f8f8',
+  },
+  filterOptionActive: {
+    backgroundColor: '#FFE5E5',
+  },
+  filterOptionText: {
+    fontSize: 15,
+    color: '#333',
+  },
+  filterOptionTextActive: {
+    color: '#FF385C',
+    fontWeight: '600',
+  },
+  checkIcon: {
+    fontSize: 18,
+    color: '#FF385C',
+    fontWeight: 'bold',
+  },
+  facilitiesModal: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    marginTop: 'auto',
+  },
+  facilitiesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  closeBtn: {
+    fontSize: 24,
+    color: '#666',
+    width: 40,
+  },
+  facilitiesTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  resetBtn: {
+    fontSize: 14,
+    color: '#FF385C',
+    width: 40,
+    textAlign: 'right',
+  },
+  facilitiesScroll: {
+    maxHeight: 300,
+  },
+  facilitiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 16,
+  },
+  facilityTag: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    margin: 6,
+  },
+  facilityTagActive: {
+    backgroundColor: '#FF385C',
+  },
+  facilityTagText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  facilityTagTextActive: {
+    color: '#fff',
+  },
+  facilitiesFooter: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  confirmBtn: {
+    backgroundColor: '#FF385C',
+    borderRadius: 8,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
