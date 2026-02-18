@@ -103,7 +103,7 @@ const HomeScreen = () => {
       if (address.length > 0) {
         const city = address[0].city || address[0].region || '';
         setLocation(city);
-        Alert.alert('定位成功', `当前位置: ${city}`);
+        //Alert.alert('定位成功', `当前位置: ${city}`);
       }
     } catch (error) {
       Alert.alert('定位失败', '无法获取当前位置');

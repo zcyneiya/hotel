@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Animated,
+  TouchableWithoutFeedback,
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface DateRangePickerProps {
   visible: boolean;
@@ -34,7 +36,66 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   );
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // 生成日历数据
+  // 动画值
+  const slideAnim = useRef(new Animated.Value(height)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      // 进场动画
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // 离场动画
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: height,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible]);
+
+  const handleClose = () => {
+    // 先执行离场动画，再调用 onClose
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: height,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onClose();
+    });
+  };
+
+  const handleConfirm = () => {
+    if (selectedCheckIn && selectedCheckOut) {
+      onConfirm(selectedCheckIn, selectedCheckOut);
+      handleClose();
+    }
+  };
   const generateCalendar = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -133,12 +194,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   };
 
   // 确认选择
-  const handleConfirm = () => {
-    if (selectedCheckIn && selectedCheckOut) {
-      onConfirm(selectedCheckIn, selectedCheckOut);
-      onClose();
-    }
-  };
+  // handleConfirm 已在上方重写，这里删除多余部分
 
   // 重置选择
   const handleReset = () => {
@@ -156,24 +212,34 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
 
+  if (!visible) return null;
+
   return (
     <Modal
+      transparent
       visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          {/* 头部 */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.closeBtn}>✕</Text>
-            </TouchableOpacity>
-            <Text style={styles.title}>选择日期</Text>
-            <TouchableOpacity onPress={handleReset}>
-              <Text style={styles.resetBtn}>重置</Text>
-            </TouchableOpacity>
-          </View>
+      onRequestClose={handleClose}
+      animationType="none" // 关闭默认动画，使用自定义动画
+    >
+      <TouchableWithoutFeedback onPress={handleClose}>
+        <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
+          <TouchableWithoutFeedback>
+            <Animated.View 
+              style={[
+                styles.modalContent, 
+                { transform: [{ translateY: slideAnim }] }
+              ]}
+            >
+              {/* 头部 */}
+              <View style={styles.header}>
+                <TouchableOpacity onPress={handleClose}>
+                  <Text style={styles.closeBtn}>✕</Text>
+                </TouchableOpacity>
+                <Text style={styles.title}>选择日期</Text>
+                <TouchableOpacity onPress={handleReset}>
+                  <Text style={styles.resetBtn}>重置</Text>
+                </TouchableOpacity>
+              </View>
 
           {/* 选中日期显示 */}
           <View style={styles.selectedDates}>
@@ -276,9 +342,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
               <Text style={styles.confirmBtnText}>确定</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
-    </Modal>
+        </Animated.View>
+      </TouchableWithoutFeedback>
+    </Animated.View>
+  </TouchableWithoutFeedback>
+</Modal>
   );
 };
 
@@ -292,13 +360,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '90%',
+    height: 'auto',
+    maxHeight: '80%',
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 17,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -322,7 +392,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: 13,
     backgroundColor: '#f8f8f8',
   },
   dateBox: {
@@ -348,7 +418,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: 10,
   },
   monthBtn: {
     width: 40,
@@ -391,7 +461,7 @@ const styles = StyleSheet.create({
   },
   dayCell: {
     width: (width - 32) / 7,
-    height: 60,
+    height: 55,
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 4,
@@ -430,8 +500,10 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 16,
+    paddingBottom: 35, 
     borderTopWidth: 1,
     borderTopColor: '#eee',
+    backgroundColor: '#fff', 
   },
   confirmBtn: {
     backgroundColor: '#FF385C',

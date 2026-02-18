@@ -58,9 +58,9 @@ const DetailScreen = () => {
     Alert.alert('提示', isFavorite ? '已取消收藏' : '已收藏');
   };
 
-  const handleBook = (roomType: string, availableCount: number) => {
-    if (availableCount < 3) {
-      Alert.alert('提示', `仅剩${availableCount}间，请尽快预订！`, [
+  const handleBook = (roomType: string, availableRooms: number) => {
+    if (availableRooms < 3) {
+      Alert.alert('提示', `仅剩${availableRooms}间，请尽快预订！`, [
         { text: '取消', style: 'cancel' },
         { text: '立即预订', onPress: () => Alert.alert('提示', '预订功能开发中') }
       ]);
@@ -90,6 +90,17 @@ const DetailScreen = () => {
     return `${parts[1]}月${parts[2]}日`;
   };
 
+  const formatOpenDate = (dateStr: string): string => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
+    } catch (e) {
+      return dateStr;
+    }
+  };  
+  
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -124,21 +135,21 @@ const DetailScreen = () => {
       userName: '张三',
       rating: 5,
       content: '酒店环境很好，服务态度也很棒，下次还会再来！',
-      date: '2024-01-15',
+      date: '2026-01-15',
     },
     {
       id: '2',
       userName: '李四',
       rating: 4.5,
       content: '位置不错，交通便利，房间干净整洁。',
-      date: '2024-01-10',
+      date: '2026-01-10',
     },
     {
       id: '3',
       userName: '王五',
       rating: 5,
       content: '性价比很高，早餐丰富，推荐！',
-      date: '2024-01-05',
+      date: '2026-01-05',
     },
   ];
 
@@ -204,21 +215,21 @@ const DetailScreen = () => {
           </View>
 
           <View style={styles.metaRow}>
-            <Text style={styles.starLevel}>
-              {'⭐'.repeat(hotel.starLevel || 4)}
-            </Text>
-            <Text style={styles.divider}>·</Text>
-            <Text style={styles.hotelType}>{hotel.type || '精品酒店'}</Text>
+            <View style={styles.metaLeft}>
+              <Text style={styles.starLevel}>
+                {'⭐'.repeat(hotel.starLevel || 4)}
+              </Text>
+              <Text style={styles.divider}>{hotel.type ? '·' : ''}</Text>
+              <Text style={styles.hotelType}>{hotel.type || ''}</Text>
+            </View>
+            {hotel.openDate && (
+              <Text style={styles.openingDate}>
+                开业时间: {formatOpenDate(hotel.openDate)}
+              </Text>
+            )}
           </View>
 
-          {hotel.openingDate && (
-            <Text style={styles.openingDate}>
-              开业时间: {hotel.openingDate}
-            </Text>
-          )}
-
           <View style={styles.addressRow}>
-            <Text style={styles.locationIcon}>📍</Text>
             <Text style={styles.address}>{hotel.address || '市中心'}</Text>
           </View>
 
@@ -249,6 +260,24 @@ const DetailScreen = () => {
 
         {/* 分隔线 */}
         <View style={styles.dividerLine} />
+
+        {/* 设施服务 */}
+        {hotel.facilities && hotel.facilities.length > 0 && (
+          <>
+            <View style={styles.facilitiesSection}>
+              <Text style={styles.sectionTitle}>设施与服务</Text>
+              <View style={styles.facilitiesGrid}>
+                {hotel.facilities.map((facility, index) => (
+                  <View key={index} style={styles.facilityItem}>
+                    <Text style={styles.facilityIcon}>✓</Text>
+                    <Text style={styles.facilityName}>{facility}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <View style={styles.dividerLine} />
+          </>
+        )}
 
         {/* 选择日历、人数、间数 Banner */}
         <View style={styles.bookingBanner}>
@@ -319,24 +348,6 @@ const DetailScreen = () => {
 
         <View style={styles.dividerLine} />
 
-        {/* 设施服务 */}
-        {hotel.facilities && hotel.facilities.length > 0 && (
-          <>
-            <View style={styles.facilitiesSection}>
-              <Text style={styles.sectionTitle}>设施与服务</Text>
-              <View style={styles.facilitiesGrid}>
-                {hotel.facilities.map((facility, index) => (
-                  <View key={index} style={styles.facilityItem}>
-                    <Text style={styles.facilityIcon}>✓</Text>
-                    <Text style={styles.facilityName}>{facility}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-            <View style={styles.dividerLine} />
-          </>
-        )}
-
         {/* 房型列表 - 从低到高排序 */}
         <View style={styles.roomsSection}>
           <Text style={styles.sectionTitle}>选择房型</Text>
@@ -354,7 +365,7 @@ const DetailScreen = () => {
                 <View style={styles.roomMeta}>
                   <Text style={styles.roomCapacity}>可住{room.capacity}人</Text>
                   <Text style={styles.roomDivider}>·</Text>
-                  <Text style={styles.roomCount}>共{room.count}间</Text>
+                  <Text style={styles.roomCount}>剩余{room.availableRooms}间</Text>
                 </View>
 
                 {room.facilities && room.facilities.length > 0 && (
@@ -375,13 +386,32 @@ const DetailScreen = () => {
                   </View>
                   <TouchableOpacity
                     style={styles.bookBtn}
-                    onPress={() => handleBook(room.type, room.availableCount || room.count)}>
+                    onPress={() => handleBook(room.type, room.availableRooms || room.totalRooms)}>
                     <Text style={styles.bookText}>预订</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ))}
         </View>
+
+        {/* 优惠活动 */}
+        {hotel.promotions && hotel.promotions.length > 0 && (
+          <>
+            <View style={styles.dividerLine} />
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>优惠活动</Text>
+              {hotel.promotions.map((promo, index) => (
+                <View key={index} style={styles.promotionCard}>
+                  <View style={styles.promotionHeader}>
+                     <Text style={styles.promotionTag}>优惠</Text>
+                     <Text style={styles.promotionTitle}>{promo.title}</Text>
+                  </View>
+                  <Text style={styles.promotionDesc}>{promo.description}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
 
         <View style={styles.dividerLine} />
 
@@ -569,7 +599,12 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 8,
+  },
+  metaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   starLevel: {
     fontSize: 14,
@@ -586,7 +621,6 @@ const styles = StyleSheet.create({
   openingDate: {
     fontSize: 13,
     color: '#666',
-    marginBottom: 8,
   },
   addressRow: {
     flexDirection: 'row',
@@ -618,6 +652,42 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     lineHeight: 20,
+  },
+  sectionContainer: {
+    padding: 20,
+  },
+  promotionCard: {
+    backgroundColor: '#FFF0F5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#FFE4E1',
+  },
+  promotionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  promotionTag: {
+    fontSize: 10,
+    color: '#fff',
+    backgroundColor: '#FF385C',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 8,
+    overflow: 'hidden',
+  },
+  promotionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  promotionDesc: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 18,
   },
   dividerLine: {
     height: 8,

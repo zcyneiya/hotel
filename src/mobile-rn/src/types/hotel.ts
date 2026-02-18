@@ -15,7 +15,8 @@ export interface Hotel {
   nearbyAttractions?: string[];
   nearbyTransport?: string[];
   nearbyMalls?: string[];
-  openingDate?: string;
+  openDate: string;
+  promotions?: promotion[];
   location?: {
     lat: number;
     lng: number;
@@ -24,13 +25,18 @@ export interface Hotel {
   originalPrice?: number;
 }
 
+export interface promotion {
+  title: string;
+  description: string;
+} 
+
 export interface Room {
   type: string;
   price: number;
   area?: number;
   capacity: number;
-  count: number;
-  availableCount: number;
+  totalRooms: number;
+  availableRooms: number;
   facilities: string[];
 }
 
