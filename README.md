@@ -54,9 +54,11 @@ hotel/
 ```bash
 
 # 移动端 (ios)
+# 1) 创建 Expo + TypeScript 项目（首次搭建时执行）
+npx create-expo-app src/mobile-rn -t expo-template-blank-typescript
+# 2) 安装依赖
 cd src/mobile-rn
 npm install
-cd ios && pod install && cd ..  
 
 # 管理端
 cd src/admin
@@ -78,9 +80,9 @@ pnpm dev
 cd src/admin
 pnpm dev
 
-# 移动端 (React Native) - iOS
+# 移动端 (expo)
 cd src/mobile-rn
-npx expo dev
+npx expo start
 ```
 
 ## 功能模块
