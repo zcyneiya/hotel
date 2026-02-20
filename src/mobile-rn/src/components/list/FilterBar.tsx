@@ -59,10 +59,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   ];
 
   // 设施筛选选项
-  const facilitiesOptions = [
-    '免费WiFi', '免费停车', '游泳池', '健身房', 
-    '餐厅', '会议室', '温泉', '儿童乐园'
-  ];
+  const facilitiesOptions = ['免费WiFi', '停车场', '游泳池', '健身房', '餐厅'];
 
   const getPriceLabel = () => {
     const option = priceOptions.find(o => o.value === priceRange);
@@ -167,19 +164,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </View>
-                
-                <View style={styles.dropdownFooter}>
-                  <TouchableOpacity onPress={() => onFacilitiesChange([])} style={styles.resetButton}>
-                    <Text style={styles.resetButtonText}>重置</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.confirmButton}
-                    onPress={() => onTabChange(null)}>
-                    <Text style={styles.confirmButtonText}>
-                      确定 {facilitiesFilter.length > 0 ? `(${facilitiesFilter.length})` : ''}
-                    </Text>
-                  </TouchableOpacity>
                 </View>
               </View>
               
@@ -336,45 +320,6 @@ const styles = StyleSheet.create({
   },
   facilityTagTextActive: {
     color: '#FF385C',
-    fontWeight: 'bold',
-  },
-  dropdownFooter: {
-    flexDirection: 'row',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    backgroundColor: '#fff',
-  },
-  resetButton: {
-    flex: 1,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  resetButtonText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  confirmButton: {
-    flex: 3,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FF385C',
-    borderRadius: 20,
-    shadowColor: '#FF385C',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  confirmButtonText: {
-    color: '#fff',
-    fontSize: 14,
     fontWeight: 'bold',
   },
 });

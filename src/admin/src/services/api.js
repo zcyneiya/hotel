@@ -14,7 +14,10 @@ export const hotelService = {
   createHotel: (data) => api.post('/hotels', data),
   updateHotel: (id, data) => api.put(`/hotels/${id}`, data),
   getMerchantHotels: () => api.get('/hotels/merchant/my'),
-  submitForReview: (id) => api.post(`/hotels/${id}/submit`)
+  submitForReview: (id) => api.post(`/hotels/${id}/submit`),
+  uploadImage: (formData) => api.post('/upload/image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
 };
 
 // 审核服务

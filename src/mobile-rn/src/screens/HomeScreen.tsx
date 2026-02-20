@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   Image,
   Dimensions,
@@ -15,13 +14,59 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import * as Location from 'expo-location';
 import DateRangePicker from '../components/DateRangePicker';
+import { hotelService } from '../services/hotelService';
+import { getImageUrl } from '../utils/imageUrl';
+import { Hotel } from '../types/hotel';
+import HomeBanner from '../components/home/HomeBanner';
+import HomeSearchCard from '../components/home/HomeSearchCard';
+import HomeDestinations from '../components/home/HomeDestinations';
 
 const { width } = Dimensions.get('window');
+const AUTO_SCROLL_INTERVAL = 3000;
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'Home'
 >;
+
+type BannerConfig = {
+  id: number;
+  title: string;
+  city: string;
+  hotelName: string;
+  fallbackImage: string;
+};
+
+type BannerItem = {
+  id: number;
+  title: string;
+  image: string;
+  hotelId: string;
+};
+
+const bannerConfigs: BannerConfig[] = [
+  {
+    id: 1,
+    title: '北京王府井希尔顿酒店',
+    city: '北京',
+    hotelName: '北京王府井希尔顿酒店',
+    fallbackImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=400&fit=crop',
+  },
+  {
+    id: 2,
+    title: '上海法租界老洋房民宿',
+    city: '上海',
+    hotelName: '上海法租界老洋房民宿',
+    fallbackImage: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&h=400&fit=crop',
+  },
+  {
+    id: 3,
+    title: '杭州西子湖四季酒店',
+    city: '杭州',
+    hotelName: '杭州西子湖四季酒店',
+    fallbackImage: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&h=400&fit=crop',
+  },
+];
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
@@ -29,58 +74,111 @@ const HomeScreen = () => {
   const [keyword, setKeyword] = useState('');
   const [checkInDate, setCheckInDate] = useState('');
   const [checkOutDate, setCheckOutDate] = useState('');
+  const [priceRange, setPriceRange] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const bannerScrollRef = useRef<ScrollView>(null);
+  const [banners, setBanners] = useState<BannerItem[]>(
+    bannerConfigs.map((config) => ({
+      id: config.id,
+      title: config.title,
+      image: config.fallbackImage,
+      hotelId: '',
+    }))
+  );
+  const displayBanners = banners.length > 0 ? [...banners, banners[0]] : [];
 
-  // Banner 数据 - 点击跳转到酒店详情页
-  const banners = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=400&fit=crop',
-      hotelId: '1',
-      title: '豪华五星酒店',
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&h=400&fit=crop',
-      hotelId: '2',
-      title: '精品商务酒店',
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&h=400&fit=crop',
-      hotelId: '3',
-      title: '海景度假酒店',
-    },
-  ];
+  useEffect(() => {
+    loadBannerHotels();
+  }, []);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setCurrentBannerIndex((prevIndex) => {
+        const nextIndex = prevIndex + 1;
+        bannerScrollRef.current?.scrollTo({
+          x: nextIndex * width,
+          animated: true,
+        });
+        return nextIndex;
+      });
+    }, AUTO_SCROLL_INTERVAL);
+
+    return () => clearInterval(timer);
+  }, [banners.length]);
+
+  useEffect(() => {
+    if (currentBannerIndex > banners.length) {
+      setCurrentBannerIndex(0);
+      bannerScrollRef.current?.scrollTo({ x: 0, animated: false });
+    }
+  }, [banners.length, currentBannerIndex]);
+
+  const getHotelCnName = (hotelName: Hotel['name']): string => {
+    if (typeof hotelName === 'string') return hotelName;
+    return hotelName?.cn || hotelName?.en || '';
+  };
+
+  const loadBannerHotels = async () => {
+    try {
+      const mappedBanners = await Promise.all(
+        bannerConfigs.map(async (config) => {
+          const response = await hotelService.getHotels({
+            city: config.city,
+            keyword: config.hotelName,
+            page: 1,
+            limit: 10,
+          });
+
+          const hotelList: Hotel[] = response?.data?.hotels || [];
+          const matchedHotel =
+            hotelList.find((item) => getHotelCnName(item.name) === config.hotelName) || hotelList[0];
+
+          return {
+            id: config.id,
+            title: config.title,
+            image: getImageUrl(matchedHotel?.images?.[0] || config.fallbackImage),
+            hotelId: matchedHotel?._id || '',
+          };
+        })
+      );
+
+      setBanners(mappedBanners);
+    } catch (error) {
+      console.warn('Load banner hotels failed:', error);
+    }
+  };
 
   // 快捷标签 - 对应数据库中的酒店标签
-  const quickTags = ['亲子', '豪华', '免费停车', '游泳池', '健身房', '商务', '度假', '温泉'];
+  const quickTags = ['停车场', '游泳池', '健身房', '餐厅', '免费WiFi'];
 
   // 推荐目的地
   const destinations = [
     {
       id: 1,
       name: '北京',
-      image: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=600&h=400&fit=crop',
+      image: require('../../assets/beijing.jpg'),
       desc: '历史文化名城',
     },
     {
       id: 2,
       name: '上海',
-      image: 'https://images.unsplash.com/photo-1548919973-5cef591cdbc9?w=600&h=400&fit=crop',
+      image: require('../../assets/shanghai.jpg'),
       desc: '国际大都市',
     },
     {
       id: 3,
       name: '杭州',
-      image: 'https://images.unsplash.com/photo-1559564484-e48bf5f6c69b?w=600&h=400&fit=crop',
+      image: require('../../assets/hangzhou.jpg'),
       desc: '人间天堂',
     },
     {
       id: 4,
       name: '成都',
-      image: 'https://images.unsplash.com/photo-1590859808308-3d2d9c515b1a?w=600&h=400&fit=crop',
+      image: require('../../assets/chengdu.jpg'),
       desc: '休闲之都',
     },
   ];
@@ -112,6 +210,10 @@ const HomeScreen = () => {
 
   // Banner 点击 - 跳转到酒店详情页
   const handleBannerClick = (hotelId: string) => {
+    if (!hotelId) {
+      Alert.alert('提示', '酒店信息加载中，请稍后再试');
+      return;
+    }
     navigation.navigate('Detail', { id: hotelId });
   };
 
@@ -136,6 +238,7 @@ const HomeScreen = () => {
       keyword,
       checkIn: checkInDate,
       checkOut: checkOutDate,
+      priceRange,
       tags: selectedTags.join(','),
     });
   };
@@ -151,153 +254,43 @@ const HomeScreen = () => {
     setCheckOutDate(checkOut);
   };
 
-  // 格式化日期显示
-  const formatDateDisplay = (dateStr: string): string => {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    return `${parts[1]}月${parts[2]}日`;
-  };
-
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Banner 轮播 - 点击跳转酒店详情 */}
-      <View style={styles.bannerSection}>
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          style={styles.bannerScroll}>
-          {banners.map(banner => (
-            <TouchableOpacity
-              key={banner.id}
-              onPress={() => handleBannerClick(banner.hotelId)}
-              activeOpacity={0.9}>
-              <Image source={{ uri: banner.image }} style={styles.bannerImage} />
-              <View style={styles.bannerOverlay}>
-                <Text style={styles.bannerTitle}>{banner.title}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      <HomeBanner
+        banners={banners}
+        displayBanners={displayBanners}
+        currentBannerIndex={currentBannerIndex}
+        bannerScrollRef={bannerScrollRef}
+        onBannerPress={handleBannerClick}
+        onMomentumScrollEnd={(event) => {
+          const newIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+          if (newIndex === banners.length) {
+            bannerScrollRef.current?.scrollTo({ x: 0, animated: false });
+            setCurrentBannerIndex(0);
+            return;
+          }
+          setCurrentBannerIndex(newIndex);
+        }}
+      />
 
-      {/* 搜索卡片 */}
-      <View style={styles.searchCard}>
-        <Text style={styles.cardTitle}>开始你的旅程</Text>
+      <HomeSearchCard
+        location={location}
+        keyword={keyword}
+        checkInDate={checkInDate}
+        checkOutDate={checkOutDate}
+        priceRange={priceRange}
+        selectedTags={selectedTags}
+        quickTags={quickTags}
+        onLocationChange={setLocation}
+        onKeywordChange={setKeyword}
+        onPriceRangeChange={setPriceRange}
+        onLocationPress={getCurrentLocation}
+        onDatePress={() => setShowDatePicker(true)}
+        onToggleTag={toggleTag}
+        onSearch={handleSearch}
+      />
 
-        {/* 目的地输入 - 支持定位 */}
-        <View style={styles.searchItem}>
-          <View style={styles.itemLabel}>
-            <Text style={styles.labelIcon}>📍</Text>
-            <Text style={styles.labelText}>目的地</Text>
-          </View>
-          <View style={styles.itemContent}>
-            <TextInput
-              style={styles.input}
-              value={location}
-              onChangeText={setLocation}
-              placeholder="请输入城市名称"
-              placeholderTextColor="#999"
-            />
-            <TouchableOpacity
-              style={styles.locationBtn}
-              onPress={getCurrentLocation}>
-              <Text style={styles.locationIcon}>📍</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 关键字搜索 */}
-        <View style={styles.searchItem}>
-          <View style={styles.itemLabel}>
-            <Text style={styles.labelIcon}>🔍</Text>
-            <Text style={styles.labelText}>关键字</Text>
-          </View>
-          <View style={styles.itemContent}>
-            <TextInput
-              style={styles.input}
-              value={keyword}
-              onChangeText={setKeyword}
-              placeholder="酒店名称、品牌等"
-              placeholderTextColor="#999"
-            />
-          </View>
-        </View>
-
-        {/* 日期选择 */}
-        <View style={styles.dateRow}>
-          <TouchableOpacity 
-            style={styles.dateItem}
-            onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.dateLabel}>入住</Text>
-            <Text style={[styles.dateValue, checkInDate && styles.dateValueSelected]}>
-              {checkInDate ? formatDateDisplay(checkInDate) : '选择日期'}
-            </Text>
-          </TouchableOpacity>
-          <Text style={styles.dateDivider}>→</Text>
-          <TouchableOpacity 
-            style={styles.dateItem}
-            onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.dateLabel}>离店</Text>
-            <Text style={[styles.dateValue, checkOutDate && styles.dateValueSelected]}>
-              {checkOutDate ? formatDateDisplay(checkOutDate) : '选择日期'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 快捷标签 - 对应数据库标签 */}
-        <View style={styles.tagsSection}>
-          <Text style={styles.tagsLabel}>快捷筛选</Text>
-          <View style={styles.tagsGrid}>
-            {quickTags.map(tag => (
-              <TouchableOpacity
-                key={tag}
-                style={[
-                  styles.tagItem,
-                  selectedTags.includes(tag) && styles.tagActive,
-                ]}
-                onPress={() => toggleTag(tag)}>
-                <Text
-                  style={[
-                    styles.tagText,
-                    selectedTags.includes(tag) && styles.tagTextActive,
-                  ]}>
-                  {tag}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* 搜索按钮 */}
-        <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-          <Text style={styles.searchBtnText}>搜索酒店</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 热门目的地 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>热门目的地</Text>
-        <View style={styles.destinationList}>
-          {destinations.map(dest => (
-            <TouchableOpacity
-              key={dest.id}
-              style={styles.destinationCard}
-              onPress={() => goToCity(dest.name)}
-              activeOpacity={0.8}>
-              <Image
-                source={{ uri: dest.image }}
-                style={styles.destImage}
-              />
-              <View style={styles.destOverlay}>
-                <Text style={styles.destName}>{dest.name}</Text>
-                <Text style={styles.destDesc}>{dest.desc}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+      <HomeDestinations destinations={destinations} onPressCity={goToCity} />
 
       {/* 底部提示 */}
       <View style={styles.footerTip}>
@@ -346,6 +339,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  bannerDotsContainer: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bannerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    marginHorizontal: 4,
+  },
+  bannerDotActive: {
+    width: 16,
+    borderRadius: 8,
+    backgroundColor: '#fff',
   },
   searchCard: {
     backgroundColor: '#fff',
@@ -470,50 +484,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  section: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  destinationList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -8,
-  },
-  destinationCard: {
-    width: (width - 48) / 2,
-    height: 160,
-    margin: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  destImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  destOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    padding: 12,
-  },
-  destName: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  destDesc: {
-    color: '#fff',
-    fontSize: 12,
   },
   footerTip: {
     flexDirection: 'row',

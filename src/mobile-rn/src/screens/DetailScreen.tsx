@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { hotelService } from '../services/hotelService';
 import { Hotel } from '../types/hotel';
+import { getImageUrl } from '../utils/imageUrl';
 import DateRangePicker from '../components/DateRangePicker';
 
 const { width } = Dimensions.get('window');
@@ -126,7 +127,7 @@ const DetailScreen = () => {
 
   const images = hotel.images?.length > 0
     ? hotel.images
-    : ['https://via.placeholder.com/750x500/667eea/ffffff?text=Hotel'];
+    : [];
 
   // Mock 评价数据
   const mockReviews = hotel.reviews || [
@@ -169,13 +170,18 @@ const DetailScreen = () => {
               setCurrentImageIndex(index);
             }}
             scrollEventThrottle={16}>
-            {images.map((img, index) => (
+            {images.length > 0 ? images.map((img, index) => (
               <Image
                 key={index}
-                source={{ uri: img }}
+                source={{ uri: getImageUrl(img) }}
                 style={styles.hotelImage}
               />
-            ))}
+            )) : (
+              <Image
+                source={{ uri: getImageUrl(null) }}
+                style={styles.hotelImage}
+              />
+            )}
           </ScrollView>
 
           {/* 图片指示器 */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  TextInput, // Add TextInput import
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,6 +18,7 @@ import { Hotel } from '../types/hotel';
 import DateRangePicker from '../components/DateRangePicker';
 import HotelCard from '../components/list/HotelCard';
 import { FilterBar } from '../components/list/FilterBar';
+import { SearchBar } from '../components/list/SearchBar';
 
 type ListScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -38,15 +40,26 @@ const ListScreen = () => {
   const [checkInDate, setCheckInDate] = useState(route.params?.checkIn || '');
   const [checkOutDate, setCheckOutDate] = useState(route.params?.checkOut || '');
   const [keyword, setKeyword] = useState(route.params?.keyword || '');
-  const [tags, setTags] = useState(route.params?.tags || '');
 
   // 筛选条件
-  const [priceRange, setPriceRange] = useState<string>('');
+  const [priceRange, setPriceRange] = useState<string>(route.params?.priceRange || '');
   const [ratingFilter, setRatingFilter] = useState<string>('');
-  const [facilitiesFilter, setFacilitiesFilter] = useState<string[]>([]);
+  const [facilitiesFilter, setFacilitiesFilter] = useState<string[]>(() => {
+    // initialize from navigation params
+    if (route.params?.tags) {
+        return route.params.tags.split(',').filter(t => t.trim() !== '');
+    }
+    return [];
+  });
 
   const [activeFilterTab, setActiveFilterTab] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
 
   useEffect(() => {
     fetchHotels(1);
@@ -55,14 +68,14 @@ const ListScreen = () => {
   }, [priceRange, ratingFilter, facilitiesFilter]);
 
   const fetchHotels = async (pageNum: number) => {
-    if (loading) return;
+    if (loading && pageNum > 1) return; // Prevent multiple load more requests, but allow refresh/filter
 
     setLoading(true);
     try {
       const params: any = {
         city,
         keyword,
-        tags,
+        // tags, // remove tags
         checkIn: checkInDate,
         checkOut: checkOutDate,
         page: pageNum,
@@ -73,6 +86,8 @@ const ListScreen = () => {
       if (priceRange) params.priceRange = priceRange;
       if (ratingFilter) params.rating = ratingFilter;
       if (facilitiesFilter.length > 0) params.facilities = facilitiesFilter.join(',');
+      
+      console.log('Fetching hotels params:', params); 
 
       const response = await hotelService.getHotels(params);
 
@@ -85,6 +100,14 @@ const ListScreen = () => {
       setHasMore(response.data.pagination.page < response.data.pagination.pages);
       setPage(pageNum);
     } catch (error: any) {
+      console.error('Fetch hotels error:', error);
+      if (error.response) {
+          console.error('Error response:', error.response.status, error.response.data);
+      } else if (error.request) {
+          console.error('Error request:', error.request);
+      } else {
+          console.error('Error message:', error.message);
+      }
       Alert.alert('错误', error.message || '加载失败');
       if (pageNum === 1) {
         setHotels([]);
@@ -96,7 +119,8 @@ const ListScreen = () => {
   };
 
   const handleLoadMore = () => {
-    if (hasMore && !loading) {
+    // 只有当有更多数据，且不在加载中，且确实有数据时才加载下一页
+    if (hasMore && !loading && hotels.length > 0) {
       fetchHotels(page + 1);
     }
   };
@@ -166,59 +190,26 @@ const ListScreen = () => {
     );
   };
     
+  const getDayMonth = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length < 3) return '';
+    return `${parts[1]}-${parts[2]}`;
+  };
+
   return (
     <View style={styles.container}>
       {/* 顶部搜索信息栏 */}
-      <View style={styles.searchBar}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation.goBack()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.searchInfoScroll}>
-          <View style={styles.searchInfo}>
-            {/* 城市 */}
-            <View style={styles.searchTag}>
-              <Text style={styles.searchTagText}>{city || '全部'}</Text>
-            </View>
-            
-            {/* 日期 */}
-            {checkInDate && checkOutDate ? (
-              <TouchableOpacity 
-                style={styles.searchTag}
-                onPress={() => setShowDatePicker(true)}>
-                <Text style={styles.searchTagText}>
-                  {formatDateDisplay(checkInDate)} - {formatDateDisplay(checkOutDate)}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={styles.searchTag}
-                onPress={() => setShowDatePicker(true)}>
-                <Text style={styles.searchTagText}>选择日期</Text>
-              </TouchableOpacity>
-            )}
-            
-            {/* 入住天数 */}
-            {calculateNights() > 0 && (
-              <View style={styles.searchTag}>
-                <Text style={styles.searchTagText}>{calculateNights()}晚</Text>
-              </View>
-            )}
-            
-            {/* 关键词 */}
-            {keyword && (
-              <View style={styles.searchTag}>
-                <Text style={styles.searchTagText}>{keyword}</Text>
-              </View>
-            )}
-          </View>
-        </ScrollView>
-      </View>
+      <SearchBar
+        city={city}
+        checkInDate={checkInDate}
+        checkOutDate={checkOutDate}
+        keyword={keyword}
+        onBack={() => navigation.goBack()}
+        onDatePress={() => setShowDatePicker(true)}
+        onKeywordChange={setKeyword}
+        onSearch={() => fetchHotels(1)}
+      />
 
       <FilterBar
         activeTab={activeFilterTab}
@@ -239,7 +230,7 @@ const ListScreen = () => {
           keyExtractor={item => item._id}
           contentContainerStyle={styles.listContent}
           onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.1}
+          onEndReachedThreshold={0.5} // 调整阈值，防止在空列表时过早触发
           onRefresh={handleRefresh}
           refreshing={refreshing}
           ListFooterComponent={renderFooter}
@@ -264,48 +255,8 @@ const ListScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    position: 'relative', // 确保筛选下拉可以在顶层显示
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingTop: 60,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    zIndex: 11, // 确保它在最上面
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: '#333',
-  },
-  searchInfoScroll: {
-    flex: 1,
-  },
-  searchInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchTag: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-  },
-  searchTagText: {
-    fontSize: 13,
-    color: '#333',
+    position: 'relative', 
   },
   listContent: {
     padding: 16,

@@ -4,6 +4,7 @@ import { Form, Input, InputNumber, Button, DatePicker, Select, Space, Card, mess
 import { MinusCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { hotelService } from '../../services/api';
+import imageCompression from 'browser-image-compression';
 
 const { TextArea } = Input;
 
@@ -48,13 +49,37 @@ function HotelForm() {
     setHotelImageList(fileList);
   };
 
-  // 自定义上传（暂时使用 base64，实际项目应该上传到服务器）
-  const customUpload = ({ file, onSuccess }) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      onSuccess(e.target.result);
-    };
-    reader.readAsDataURL(file);
+  // 自定义上传
+  const customUpload = async ({ file, onSuccess, onError }) => {
+    try {
+      // 1. 配置压缩选项
+      const options = {
+        maxSizeMB: 1,          // 最大文件大小 1MB
+        maxWidthOrHeight: 1920, // 最大宽或高
+        useWebWorker: true,
+      };
+
+      // 2. 压缩图片
+      const compressedFile = await imageCompression(file, options);
+
+      // 3.构建 FormData
+      const formData = new FormData();
+      formData.append('file', compressedFile); 
+
+      // 4. 调用上传接口
+      const response = await hotelService.uploadImage(formData);
+      
+      if (response && response.data) {
+        onSuccess(response.data.url);
+        message.success('图片上传成功');
+      } else {
+        onError(new Error('上传响应异常'));
+      }
+    } catch (error) {
+      console.error('上传失败:', error);
+      onError(error);
+      message.error('图片上传失败');
+    }
   };
 
   const onFinish = async (values) => {
@@ -69,10 +94,10 @@ function HotelForm() {
       // 提取图片 URL
       const images = hotelImageList.map(file => {
         if (file.response) {
-          return file.response; // base64 或服务器返回的 URL
+          return file.response; // 服务器返回的 URL
         }
         return file.url; // 已存在的 URL
-      });
+      }).filter(Boolean);
 
       const data = {
         ...values,
@@ -308,11 +333,12 @@ function HotelForm() {
               {(fields, { add, remove }) => (
                 <>
                   {fields.map(({ key, name, ...restField }) => (
-                    <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                    <div key={key} style={{ display: 'flex', marginBottom: 8, alignItems: 'center' }}>
                       <Form.Item
                         {...restField}
                         name={[name, 'name']}
                         rules={[{ required: true, message: '请输入景点名称' }]}
+                        style={{ marginBottom: 0, marginRight: 8 }}
                       >
                         <Input placeholder="景点名称" style={{ width: 200 }} />
                       </Form.Item>
@@ -320,6 +346,7 @@ function HotelForm() {
                         {...restField}
                         name={[name, 'distance']}
                         rules={[{ required: true, message: '请输入距离' }]}
+                        style={{ marginBottom: 0, marginRight: 8 }}
                       >
                         <Input placeholder="如：500米" style={{ width: 120 }} />
                       </Form.Item>
@@ -327,6 +354,7 @@ function HotelForm() {
                         {...restField}
                         name={[name, 'type']}
                         rules={[{ required: true, message: '请选择类型' }]}
+                        style={{ marginBottom: 0, marginRight: 8 }}
                       >
                         <Select placeholder="类型" style={{ width: 120 }}>
                           <Select.Option value="scenic">景区</Select.Option>
@@ -337,7 +365,7 @@ function HotelForm() {
                         </Select>
                       </Form.Item>
                       <MinusCircleOutlined onClick={() => remove(name)} />
-                    </Space>
+                    </div>
                   ))}
                   <Form.Item>
                     <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
@@ -354,11 +382,12 @@ function HotelForm() {
               {(fields, { add, remove }) => (
                 <>
                   {fields.map(({ key, name, ...restField }) => (
-                    <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                    <div key={key} style={{ display: 'flex', marginBottom: 8, alignItems: 'center' }}>
                       <Form.Item
                         {...restField}
                         name={[name, 'name']}
                         rules={[{ required: true, message: '请输入名称' }]}
+                        style={{ marginBottom: 0, marginRight: 8 }}
                       >
                         <Input placeholder="如：地铁1号线" style={{ width: 200 }} />
                       </Form.Item>
@@ -366,6 +395,7 @@ function HotelForm() {
                         {...restField}
                         name={[name, 'distance']}
                         rules={[{ required: true, message: '请输入距离' }]}
+                        style={{ marginBottom: 0, marginRight: 8 }}
                       >
                         <Input placeholder="如：300米" style={{ width: 120 }} />
                       </Form.Item>
@@ -373,6 +403,7 @@ function HotelForm() {
                         {...restField}
                         name={[name, 'type']}
                         rules={[{ required: true, message: '请选择类型' }]}
+                        style={{ marginBottom: 0, marginRight: 8 }}
                       >
                         <Select placeholder="类型" style={{ width: 120 }}>
                           <Select.Option value="subway">地铁</Select.Option>
@@ -383,7 +414,7 @@ function HotelForm() {
                         </Select>
                       </Form.Item>
                       <MinusCircleOutlined onClick={() => remove(name)} />
-                    </Space>
+                    </div>
                   ))}
                   <Form.Item>
                     <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
@@ -400,11 +431,12 @@ function HotelForm() {
               {(fields, { add, remove }) => (
                 <>
                   {fields.map(({ key, name, ...restField }) => (
-                    <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                    <div key={key} style={{ display: 'flex', marginBottom: 8, alignItems: 'center' }}>
                       <Form.Item
                         {...restField}
                         name={[name, 'name']}
                         rules={[{ required: true, message: '请输入名称' }]}
+                        style={{ marginBottom: 0, marginRight: 8 }}
                       >
                         <Input placeholder="商场名称" style={{ width: 200 }} />
                       </Form.Item>
@@ -412,6 +444,7 @@ function HotelForm() {
                         {...restField}
                         name={[name, 'distance']}
                         rules={[{ required: true, message: '请输入距离' }]}
+                        style={{ marginBottom: 0, marginRight: 8 }}
                       >
                         <Input placeholder="如：1公里" style={{ width: 120 }} />
                       </Form.Item>
@@ -419,6 +452,7 @@ function HotelForm() {
                         {...restField}
                         name={[name, 'type']}
                         rules={[{ required: true, message: '请选择类型' }]}
+                        style={{ marginBottom: 0, marginRight: 8 }}
                       >
                         <Select placeholder="类型" style={{ width: 120 }}>
                           <Select.Option value="mall">购物中心</Select.Option>
@@ -428,7 +462,7 @@ function HotelForm() {
                         </Select>
                       </Form.Item>
                       <MinusCircleOutlined onClick={() => remove(name)} />
-                    </Space>
+                    </div>
                   ))}
                   <Form.Item>
                     <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>

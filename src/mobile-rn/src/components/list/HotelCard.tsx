@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Hotel } from '../../types/hotel';
+import { getImageUrl } from '../../utils/imageUrl';
 
 interface HotelCardProps {
   item: Hotel;
@@ -36,7 +37,7 @@ const HotelCard: React.FC<HotelCardProps> = ({ item, onPress, onFavorite }) => {
       <View style={styles.imageContainer}>
         <Image
           source={{
-            uri: item.images?.[0] || 'https://via.placeholder.com/690x460/667eea/ffffff?text=Hotel',
+            uri: getImageUrl(item.images?.[0]),
           }}
           style={styles.hotelImage}
         />
