@@ -75,6 +75,8 @@ pnpm install
 # 后端服务 (端口: 3000)
 cd src/server
 pnpm dev
+#首次启动时，记得mock一下首页数据
+node seedHotels.js
 
 # 管理端 (端口: 5173)
 cd src/admin
