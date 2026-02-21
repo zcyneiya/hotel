@@ -1,19 +1,24 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   Alert,
+  ScrollView,
+  TextInput, // Add TextInput import
 } from 'react-native';
-import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../navigation/AppNavigator';
-import {hotelService} from '../services/hotelService';
-import {Hotel} from '../types/hotel';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
+import { hotelService } from '../services/hotelService';
+import { Hotel } from '../types/hotel';
+import DateRangePicker from '../components/DateRangePicker';
+import HotelCard from '../components/list/HotelCard';
+import { FilterBar } from '../components/list/FilterBar';
+import { SearchBar } from '../components/list/SearchBar';
 
 type ListScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -30,32 +35,79 @@ const ListScreen = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
+  // 搜索条件
+  const [city, setCity] = useState(route.params?.city || '');
+  const [checkInDate, setCheckInDate] = useState(route.params?.checkIn || '');
+  const [checkOutDate, setCheckOutDate] = useState(route.params?.checkOut || '');
+  const [keyword, setKeyword] = useState(route.params?.keyword || '');
+
+  // 筛选条件
+  const [priceRange, setPriceRange] = useState<string>(route.params?.priceRange || '');
+  const [ratingFilter, setRatingFilter] = useState<string>('');
+  const [facilitiesFilter, setFacilitiesFilter] = useState<string[]>(() => {
+    // initialize from navigation params
+    if (route.params?.tags) {
+        return route.params.tags.split(',').filter(t => t.trim() !== '');
+    }
+    return [];
+  });
+
+  const [activeFilterTab, setActiveFilterTab] = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
+
   useEffect(() => {
     fetchHotels(1);
-  }, []);
+    // 关闭所有筛选下拉
+    setActiveFilterTab(null);
+  }, [priceRange, ratingFilter, facilitiesFilter]);
 
   const fetchHotels = async (pageNum: number) => {
-    if (loading) return;
-    
+    if (loading && pageNum > 1) return; // Prevent multiple load more requests, but allow refresh/filter
+
     setLoading(true);
     try {
-      const params = {
-        ...route.params,
+      const params: any = {
+        city,
+        keyword,
+        // tags, // remove tags
+        checkIn: checkInDate,
+        checkOut: checkOutDate,
         page: pageNum,
         limit: 10,
       };
 
-      const response = await hotelService.getHotels(params);
+      // 添加筛选条件
+      if (priceRange) params.priceRange = priceRange;
+      if (ratingFilter) params.rating = ratingFilter;
+      if (facilitiesFilter.length > 0) params.facilities = facilitiesFilter.join(',');
       
+      console.log('Fetching hotels params:', params); 
+
+      const response = await hotelService.getHotels(params);
+
       if (pageNum === 1) {
         setHotels(response.data.hotels);
       } else {
         setHotels([...hotels, ...response.data.hotels]);
       }
-      
+
       setHasMore(response.data.pagination.page < response.data.pagination.pages);
       setPage(pageNum);
     } catch (error: any) {
+      console.error('Fetch hotels error:', error);
+      if (error.response) {
+          console.error('Error response:', error.response.status, error.response.data);
+      } else if (error.request) {
+          console.error('Error request:', error.request);
+      } else {
+          console.error('Error message:', error.message);
+      }
       Alert.alert('错误', error.message || '加载失败');
       if (pageNum === 1) {
         setHotels([]);
@@ -67,7 +119,8 @@ const ListScreen = () => {
   };
 
   const handleLoadMore = () => {
-    if (hasMore && !loading) {
+    // 只有当有更多数据，且不在加载中，且确实有数据时才加载下一页
+    if (hasMore && !loading && hotels.length > 0) {
       fetchHotels(page + 1);
     }
   };
@@ -78,72 +131,43 @@ const ListScreen = () => {
   };
 
   const goToDetail = (id: string) => {
-    navigation.navigate('Detail', {id});
+    navigation.navigate('Detail', { id });
   };
 
   const handleFavorite = (hotelId: string) => {
     Alert.alert('提示', '已收藏');
   };
 
-  const getHotelName = (name: Hotel['name']): string => {
-    if (typeof name === 'string') {
-      return name;
-    }
-    return name.cn || name.en || '未知酒店';
+  // 格式化日期显示
+  const formatDateDisplay = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[1]}/${parts[2]}`;
   };
 
-  const renderHotelCard = ({item}: {item: Hotel}) => (
-    <TouchableOpacity
-      style={styles.hotelCard}
-      onPress={() => goToDetail(item._id)}
-      activeOpacity={0.8}>
-      <View style={styles.imageContainer}>
-        <Image
-          source={{
-            uri: item.images?.[0] || 'https://via.placeholder.com/690x460/667eea/ffffff?text=Hotel',
-          }}
-          style={styles.hotelImage}
-        />
-        <TouchableOpacity
-          style={styles.favoriteBtn}
-          onPress={() => handleFavorite(item._id)}>
-          <Text style={styles.heartIcon}>♡</Text>
-        </TouchableOpacity>
-      </View>
+  // 计算入住天数
+  const calculateNights = (): number => {
+    if (!checkInDate || !checkOutDate) return 0;
+    const checkIn = new Date(checkInDate);
+    const checkOut = new Date(checkOutDate);
+    const diff = checkOut.getTime() - checkIn.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
 
-      <View style={styles.hotelInfo}>
-        <View style={styles.infoRow}>
-          <Text style={styles.hotelName} numberOfLines={1}>
-            {getHotelName(item.name)}
-          </Text>
-          <View style={styles.rating}>
-            <Text style={styles.starIcon}>★</Text>
-            <Text style={styles.ratingText}>{item.rating || '4.8'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.hotelTags}>
-          <Text style={styles.tag}>{'⭐'.repeat(item.starLevel || 4)}</Text>
-          <Text style={styles.tagDivider}>·</Text>
-          <Text style={styles.tag}>{item.type || '精品酒店'}</Text>
-        </View>
-
-        <Text style={styles.address} numberOfLines={1}>
-          {item.address || '市中心'}
-        </Text>
-
-        <View style={styles.priceRow}>
-          <View style={styles.priceContainer}>
-            <Text style={styles.priceLabel}>¥</Text>
-            <Text style={styles.price}>{item.rooms?.[0]?.price || 299}</Text>
-            <Text style={styles.priceUnit}>/晚</Text>
-          </View>
-          {item.originalPrice && (
-            <Text style={styles.originalPrice}>¥{item.originalPrice}</Text>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
+  // 处理日期选择
+  const handleDateConfirm = (checkIn: string, checkOut: string) => {
+    setCheckInDate(checkIn);
+    setCheckOutDate(checkOut);
+    fetchHotels(1);
+  };
+  
+  const renderItem = ({ item }: { item: Hotel }) => (
+    <HotelCard
+      item={item}
+      onPress={goToDetail}
+      onFavorite={handleFavorite}
+    />
   );
 
   const renderFooter = () => {
@@ -165,54 +189,64 @@ const ListScreen = () => {
       </View>
     );
   };
+    
+  const getDayMonth = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length < 3) return '';
+    return `${parts[1]}-${parts[2]}`;
+  };
 
   return (
     <View style={styles.container}>
-      {/* 顶部导航栏 */}
-      <View style={styles.navBar}>
-        <TouchableOpacity
-          style={styles.navLeft}
-          onPress={() => navigation.goBack()}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.navCenter}>
-          <Text style={styles.navTitle} numberOfLines={1}>
-            {route.params?.city && `${route.params.city} · `}
-            {route.params?.keyword || '酒店列表'}
-          </Text>
-        </View>
-        <View style={styles.navRight} />
+      {/* 顶部搜索信息栏 */}
+      <SearchBar
+        city={city}
+        checkInDate={checkInDate}
+        checkOutDate={checkOutDate}
+        keyword={keyword}
+        onBack={() => navigation.goBack()}
+        onDatePress={() => setShowDatePicker(true)}
+        onKeywordChange={setKeyword}
+        onSearch={() => fetchHotels(1)}
+      />
+
+      <FilterBar
+        activeTab={activeFilterTab}
+        onTabChange={setActiveFilterTab}
+        priceRange={priceRange}
+        onPriceChange={setPriceRange}
+        ratingFilter={ratingFilter}
+        onRatingChange={setRatingFilter}
+        facilitiesFilter={facilitiesFilter}
+        onFacilitiesChange={setFacilitiesFilter}
+      />
+
+      <View style={{ flex: 1, zIndex: 1 }}>
+        {/* 酒店列表 */}
+        <FlatList
+          data={hotels}
+          renderItem={renderItem}
+          keyExtractor={item => item._id}
+          contentContainerStyle={styles.listContent}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5} // 调整阈值，防止在空列表时过早触发
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={renderEmpty}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={!activeFilterTab} // 当有筛选框打开时，禁止滚动
+        />
       </View>
 
-      {/* 顶部筛选栏 */}
-      <View style={styles.filterBar}>
-        <TouchableOpacity style={styles.filterItem}>
-          <Text style={styles.filterText}>价格</Text>
-          <Text style={styles.filterIcon}>▼</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.filterItem}>
-          <Text style={styles.filterText}>评分</Text>
-          <Text style={styles.filterIcon}>▼</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.filterItem}>
-          <Text style={styles.filterText}>设施</Text>
-          <Text style={styles.filterIcon}>▼</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 酒店列表 */}
-      <FlatList
-        data={hotels}
-        renderItem={renderHotelCard}
-        keyExtractor={item => item._id}
-        contentContainerStyle={styles.listContent}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.1}
-        onRefresh={handleRefresh}
-        refreshing={refreshing}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={renderEmpty}
-        showsVerticalScrollIndicator={false}
+      {/* 日期选择器 */}
+      <DateRangePicker
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onConfirm={handleDateConfirm}
+        initialCheckIn={checkInDate}
+        initialCheckOut={checkOutDate}
       />
     </View>
   );
@@ -221,181 +255,11 @@ const ListScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  navBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 56,
     backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  navLeft: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: '#333',
-  },
-  navCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  navTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  navRight: {
-    width: 40,
-  },
-  filterBar: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  filterItem: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#333',
-    marginRight: 4,
-  },
-  filterIcon: {
-    fontSize: 10,
-    color: '#666',
+    position: 'relative', 
   },
   listContent: {
     padding: 16,
-  },
-  hotelCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  imageContainer: {
-    position: 'relative',
-    height: 200,
-  },
-  hotelImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  favoriteBtn: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  heartIcon: {
-    fontSize: 20,
-    color: '#FF385C',
-  },
-  hotelInfo: {
-    padding: 16,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  hotelName: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginRight: 8,
-  },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  starIcon: {
-    fontSize: 14,
-    color: '#FFB400',
-    marginRight: 4,
-  },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  hotelTags: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  tag: {
-    fontSize: 12,
-    color: '#666',
-  },
-  tagDivider: {
-    marginHorizontal: 6,
-    fontSize: 12,
-    color: '#ccc',
-  },
-  address: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  priceLabel: {
-    fontSize: 14,
-    color: '#FF385C',
-    fontWeight: 'bold',
-  },
-  price: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF385C',
-    marginLeft: 2,
-  },
-  priceUnit: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
-  originalPrice: {
-    fontSize: 14,
-    color: '#999',
-    textDecorationLine: 'line-through',
   },
   footer: {
     flexDirection: 'row',

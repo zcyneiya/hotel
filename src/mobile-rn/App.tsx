@@ -1,13 +1,16 @@
 import React from 'react';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import AppNavigator from './src/navigation/AppNavigator';
 
-const App = () => {
-  return (
-    <SafeAreaProvider>
-      <AppNavigator />
-    </SafeAreaProvider>
-  );
-};
+if (__DEV__) {
+  require('./src/ReactotronConfig');
+}
 
-export default App;
+export default function App() {
+  return (
+    <>
+      <AppNavigator />
+      <StatusBar style="auto" />
+    </>
+  );
+}

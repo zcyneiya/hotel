@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Button, Tag, Space, message, Modal } from 'antd';
-import { PlusOutlined, EditOutlined, SendOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, SendOutlined, EyeOutlined } from '@ant-design/icons';
 import { hotelService } from '../../services/api';
 
 const statusMap = {
@@ -53,7 +53,13 @@ function MerchantHotels() {
     {
       title: '酒店名称',
       dataIndex: ['name', 'cn'],
-      key: 'name'
+      key: 'name',
+      render: (name, record) => (
+        <Space>
+          {name}
+          {record.status === 'offline' && <Tag color="warning">已下线</Tag>}
+        </Space>
+      )
     },
     {
       title: '城市',
@@ -65,6 +71,24 @@ function MerchantHotels() {
       dataIndex: 'starLevel',
       key: 'starLevel',
       render: (level) => `${level}星`
+    },
+    {
+      title: '房型/空闲',
+      key: 'rooms',
+      render: (_, record) => {
+        if (!record.rooms || record.rooms.length === 0) {
+          return '-';
+        }
+        return (
+          <Space direction="vertical" size="small">
+            {record.rooms.map((room, index) => (
+              <div key={index}>
+                {room.type}: {room.availableRooms}/{room.totalRooms}
+              </div>
+            ))}
+          </Space>
+        );
+      }
     },
     {
       title: '状态',
@@ -87,6 +111,15 @@ function MerchantHotels() {
       key: 'action',
       render: (_, record) => (
         <Space>
+          {record.status === 'published' && (
+            <Button
+              type="link"
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/merchant/hotels/view/${record._id}`)}
+            >
+              查看详情
+            </Button>
+          )}
           {(record.status === 'draft' || record.status === 'rejected') && (
             <>
               <Button
@@ -104,6 +137,9 @@ function MerchantHotels() {
                 提交审核
               </Button>
             </>
+          )}
+          {record.status === 'offline' && (
+            <Tag color="red">已被下线</Tag>
           )}
         </Space>
       )

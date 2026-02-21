@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,15 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
-import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../navigation/AppNavigator';
-import {hotelService} from '../services/hotelService';
-import {Hotel} from '../types/hotel';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
+import { hotelService } from '../services/hotelService';
+import { Hotel } from '../types/hotel';
+import { getImageUrl } from '../utils/imageUrl';
+import DateRangePicker from '../components/DateRangePicker';
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 type DetailScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -31,6 +33,11 @@ const DetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [checkInDate, setCheckInDate] = useState('');
+  const [checkOutDate, setCheckOutDate] = useState('');
+  const [guestCount, setGuestCount] = useState(2);
+  const [roomCount, setRoomCount] = useState(1);
 
   useEffect(() => {
     fetchHotel();
@@ -52,8 +59,15 @@ const DetailScreen = () => {
     Alert.alert('提示', isFavorite ? '已取消收藏' : '已收藏');
   };
 
-  const handleBook = (roomType: string) => {
-    Alert.alert('提示', '预订功能开发中');
+  const handleBook = (roomType: string, availableRooms: number) => {
+    if (availableRooms < 3) {
+      Alert.alert('提示', `仅剩${availableRooms}间，请尽快预订！`, [
+        { text: '取消', style: 'cancel' },
+        { text: '立即预订', onPress: () => Alert.alert('提示', '预订功能开发中') }
+      ]);
+    } else {
+      Alert.alert('提示', '预订功能开发中');
+    }
   };
 
   const getHotelName = (name: Hotel['name']): string => {
@@ -63,6 +77,31 @@ const DetailScreen = () => {
     return name.cn || name.en || '未知酒店';
   };
 
+  // 处理日期选择
+  const handleDateConfirm = (checkIn: string, checkOut: string) => {
+    setCheckInDate(checkIn);
+    setCheckOutDate(checkOut);
+  };
+
+  // 格式化日期显示
+  const formatDateDisplay = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[1]}月${parts[2]}日`;
+  };
+
+  const formatOpenDate = (dateStr: string): string => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
+    } catch (e) {
+      return dateStr;
+    }
+  };  
+  
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -86,14 +125,41 @@ const DetailScreen = () => {
     );
   }
 
-  const images = hotel.images?.length > 0 
-    ? hotel.images 
-    : ['https://via.placeholder.com/750x500/667eea/ffffff?text=Hotel'];
+  const images = hotel.images?.length > 0
+    ? hotel.images
+    : [];
+
+  // Mock 评价数据
+  const mockReviews = hotel.reviews || [
+    {
+      id: '1',
+      userName: '张三',
+      rating: 5,
+      content: '酒店环境很好，服务态度也很棒，下次还会再来！',
+      date: '2026-01-15',
+    },
+    {
+      id: '2',
+      userName: '李四',
+      rating: 4.5,
+      content: '位置不错，交通便利，房间干净整洁。',
+      date: '2026-01-10',
+    },
+    {
+      id: '3',
+      userName: '王五',
+      rating: 5,
+      content: '性价比很高，早餐丰富，推荐！',
+      date: '2026-01-05',
+    },
+  ];
+
+  const avgRating = hotel.rating || 4.8;
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* 图片轮播 */}
+        {/* 图片轮播 - 滚动展示 */}
         <View style={styles.imageSection}>
           <ScrollView
             horizontal
@@ -104,13 +170,18 @@ const DetailScreen = () => {
               setCurrentImageIndex(index);
             }}
             scrollEventThrottle={16}>
-            {images.map((img, index) => (
+            {images.length > 0 ? images.map((img, index) => (
               <Image
                 key={index}
-                source={{uri: img}}
+                source={{ uri: getImageUrl(img) }}
                 style={styles.hotelImage}
               />
-            ))}
+            )) : (
+              <Image
+                source={{ uri: getImageUrl(null) }}
+                style={styles.hotelImage}
+              />
+            )}
           </ScrollView>
 
           {/* 图片指示器 */}
@@ -145,22 +216,52 @@ const DetailScreen = () => {
             <Text style={styles.hotelName}>{getHotelName(hotel.name)}</Text>
             <View style={styles.ratingBadge}>
               <Text style={styles.starIcon}>★</Text>
-              <Text style={styles.ratingText}>{hotel.rating || '4.8'}</Text>
+              <Text style={styles.ratingText}>{avgRating}</Text>
             </View>
           </View>
 
           <View style={styles.metaRow}>
-            <Text style={styles.starLevel}>
-              {'⭐'.repeat(hotel.starLevel || 4)}
-            </Text>
-            <Text style={styles.divider}>·</Text>
-            <Text style={styles.hotelType}>{hotel.type || '精品酒店'}</Text>
+            <View style={styles.metaLeft}>
+              <Text style={styles.starLevel}>
+                {'⭐'.repeat(hotel.starLevel || 4)}
+              </Text>
+              <Text style={styles.divider}>{hotel.type ? '·' : ''}</Text>
+              <Text style={styles.hotelType}>{hotel.type || ''}</Text>
+            </View>
+            {hotel.openDate && (
+              <Text style={styles.openingDate}>
+                开业时间: {formatOpenDate(hotel.openDate)}
+              </Text>
+            )}
           </View>
 
           <View style={styles.addressRow}>
-            <Text style={styles.locationIcon}>📍</Text>
             <Text style={styles.address}>{hotel.address || '市中心'}</Text>
           </View>
+
+          {/* 附近景点、交通、商场 */}
+          {(hotel.nearbyAttractions || hotel.nearbyTransport || hotel.nearbyMalls) && (
+            <View style={styles.nearbySection}>
+              {hotel.nearbyAttractions && hotel.nearbyAttractions.length > 0 && (
+                <View style={styles.nearbyItem}>
+                  <Text style={styles.nearbyLabel}>🎯 附近景点:</Text>
+                  <Text style={styles.nearbyText}>{hotel.nearbyAttractions.join(', ')}</Text>
+                </View>
+              )}
+              {hotel.nearbyTransport && hotel.nearbyTransport.length > 0 && (
+                <View style={styles.nearbyItem}>
+                  <Text style={styles.nearbyLabel}>🚇 交通:</Text>
+                  <Text style={styles.nearbyText}>{hotel.nearbyTransport.join(', ')}</Text>
+                </View>
+              )}
+              {hotel.nearbyMalls && hotel.nearbyMalls.length > 0 && (
+                <View style={styles.nearbyItem}>
+                  <Text style={styles.nearbyLabel}>🛍️ 商场:</Text>
+                  <Text style={styles.nearbyText}>{hotel.nearbyMalls.join(', ')}</Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         {/* 分隔线 */}
@@ -184,7 +285,76 @@ const DetailScreen = () => {
           </>
         )}
 
-        {/* 房型列表 */}
+        {/* 选择日历、人数、间数 Banner */}
+        <View style={styles.bookingBanner}>
+          <Text style={styles.bannerTitle}>选择入住信息</Text>
+          <View style={styles.bannerRow}>
+            <TouchableOpacity 
+              style={styles.bannerItem}
+              onPress={() => setShowDatePicker(true)}>
+              <Text style={styles.bannerLabel}>日期</Text>
+              <Text style={[styles.bannerValue, (checkInDate && checkOutDate) && styles.bannerValueSelected]}>
+                {checkInDate && checkOutDate 
+                  ? `${formatDateDisplay(checkInDate)} - ${formatDateDisplay(checkOutDate)}`
+                  : '选择日期'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.bannerItem}
+              onPress={() => {
+                Alert.prompt(
+                  '选择人数',
+                  '请输入入住人数',
+                  [
+                    { text: '取消', style: 'cancel' },
+                    { 
+                      text: '确定', 
+                      onPress: (text: string | undefined) => {
+                        const count = parseInt(text || '2');
+                        if (count > 0 && count <= 10) {
+                          setGuestCount(count);
+                        }
+                      }
+                    }
+                  ],
+                  'plain-text',
+                  String(guestCount)
+                );
+              }}>
+              <Text style={styles.bannerLabel}>人数</Text>
+              <Text style={styles.bannerValue}>{guestCount}人</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.bannerItem}
+              onPress={() => {
+                Alert.prompt(
+                  '选择间数',
+                  '请输入房间数量',
+                  [
+                    { text: '取消', style: 'cancel' },
+                    { 
+                      text: '确定', 
+                      onPress: (text: string | undefined) => {
+                        const count = parseInt(text || '1');
+                        if (count > 0 && count <= 5) {
+                          setRoomCount(count);
+                        }
+                      }
+                    }
+                  ],
+                  'plain-text',
+                  String(roomCount)
+                );
+              }}>
+              <Text style={styles.bannerLabel}>间数</Text>
+              <Text style={styles.bannerValue}>{roomCount}间</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.dividerLine} />
+
+        {/* 房型列表 - 从低到高排序 */}
         <View style={styles.roomsSection}>
           <Text style={styles.sectionTitle}>选择房型</Text>
           {hotel.rooms
@@ -196,6 +366,12 @@ const DetailScreen = () => {
                   {room.area && (
                     <Text style={styles.roomArea}>{room.area}㎡</Text>
                   )}
+                </View>
+
+                <View style={styles.roomMeta}>
+                  <Text style={styles.roomCapacity}>可住{room.capacity}人</Text>
+                  <Text style={styles.roomDivider}>·</Text>
+                  <Text style={styles.roomCount}>剩余{room.availableRooms}间</Text>
                 </View>
 
                 {room.facilities && room.facilities.length > 0 && (
@@ -216,7 +392,7 @@ const DetailScreen = () => {
                   </View>
                   <TouchableOpacity
                     style={styles.bookBtn}
-                    onPress={() => handleBook(room.type)}>
+                    onPress={() => handleBook(room.type, room.availableRooms || room.totalRooms)}>
                     <Text style={styles.bookText}>预订</Text>
                   </TouchableOpacity>
                 </View>
@@ -224,9 +400,71 @@ const DetailScreen = () => {
             ))}
         </View>
 
+        {/* 优惠活动 */}
+        {hotel.promotions && hotel.promotions.length > 0 && (
+          <>
+            <View style={styles.dividerLine} />
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>优惠活动</Text>
+              {hotel.promotions.map((promo, index) => (
+                <View key={index} style={styles.promotionCard}>
+                  <View style={styles.promotionHeader}>
+                     <Text style={styles.promotionTag}>优惠</Text>
+                     <Text style={styles.promotionTitle}>{promo.title}</Text>
+                  </View>
+                  <Text style={styles.promotionDesc}>{promo.description}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
+        <View style={styles.dividerLine} />
+
+        {/* 住客评价区 */}
+        <View style={styles.reviewsSection}>
+          <View style={styles.reviewHeader}>
+            <Text style={styles.sectionTitle}>住客评价</Text>
+            <View style={styles.avgRatingBox}>
+              <Text style={styles.avgRatingScore}>{avgRating}</Text>
+              <Text style={styles.avgRatingLabel}>综合评分</Text>
+            </View>
+          </View>
+
+          {mockReviews.map((review) => (
+            <View key={review.id} style={styles.reviewCard}>
+              <View style={styles.reviewTop}>
+                <View style={styles.reviewUser}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{review.userName[0]}</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.userName}>{review.userName}</Text>
+                    <Text style={styles.reviewDate}>{review.date}</Text>
+                  </View>
+                </View>
+                <View style={styles.reviewRating}>
+                  <Text style={styles.reviewStarIcon}>★</Text>
+                  <Text style={styles.reviewScore}>{review.rating}</Text>
+                </View>
+              </View>
+              <Text style={styles.reviewContent}>{review.content}</Text>
+            </View>
+          ))}
+        </View>
+
         {/* 底部占位 */}
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* 日期选择器 */}
+      <DateRangePicker
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onConfirm={handleDateConfirm}
+        initialCheckIn={checkInDate}
+        initialCheckOut={checkOutDate}
+      />
     </View>
   );
 };
@@ -321,7 +559,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
@@ -367,7 +605,12 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  metaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   starLevel: {
     fontSize: 14,
@@ -381,9 +624,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  openingDate: {
+    fontSize: 13,
+    color: '#666',
+  },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
   },
   locationIcon: {
     fontSize: 16,
@@ -394,9 +642,97 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  nearbySection: {
+    marginTop: 8,
+  },
+  nearbyItem: {
+    marginBottom: 8,
+  },
+  nearbyLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  nearbyText: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 20,
+  },
+  sectionContainer: {
+    padding: 20,
+  },
+  promotionCard: {
+    backgroundColor: '#FFF0F5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#FFE4E1',
+  },
+  promotionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  promotionTag: {
+    fontSize: 10,
+    color: '#fff',
+    backgroundColor: '#FF385C',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 8,
+    overflow: 'hidden',
+  },
+  promotionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  promotionDesc: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 18,
+  },
   dividerLine: {
     height: 8,
     backgroundColor: '#f5f5f5',
+  },
+  bookingBanner: {
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  bannerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  bannerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  bannerItem: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    padding: 12,
+    marginHorizontal: 4,
+    alignItems: 'center',
+  },
+  bannerLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  bannerValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#999',
+  },
+  bannerValueSelected: {
+    color: '#333',
   },
   facilitiesSection: {
     padding: 20,
@@ -441,7 +777,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   roomType: {
     fontSize: 16,
@@ -450,6 +786,24 @@ const styles = StyleSheet.create({
   },
   roomArea: {
     fontSize: 14,
+    color: '#666',
+  },
+  roomMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  roomCapacity: {
+    fontSize: 13,
+    color: '#666',
+  },
+  roomDivider: {
+    marginHorizontal: 8,
+    fontSize: 13,
+    color: '#ccc',
+  },
+  roomCount: {
+    fontSize: 13,
     color: '#666',
   },
   roomFacilities: {
@@ -482,7 +836,7 @@ const styles = StyleSheet.create({
   },
   priceUnit: {
     fontSize: 14,
-    color: '#666',
+    color: '#FF385C',
     marginLeft: 4,
   },
   bookBtn: {
@@ -495,6 +849,95 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: 'bold',
+  },
+  reviewsSection: {
+    padding: 20,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avgRatingBox: {
+    alignItems: 'center',
+    backgroundColor: '#FF385C',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  avgRatingScore: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  avgRatingLabel: {
+    fontSize: 12,
+    color: '#fff',
+    marginTop: 2,
+  },
+  reviewCard: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  reviewTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  reviewUser: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FF385C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: '#999',
+  },
+  reviewRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  reviewStarIcon: {
+    fontSize: 14,
+    color: '#FFB400',
+    marginRight: 4,
+  },
+  reviewScore: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  reviewContent: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 22,
   },
   bottomSpacer: {
     height: 20,

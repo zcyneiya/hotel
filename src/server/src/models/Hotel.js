@@ -9,6 +9,24 @@ const roomSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  totalRooms: {
+    type: Number,
+    required: true,
+    min: 1,
+    default: 1
+  },
+  availableRooms: {
+    type: Number,
+    required: true,
+    min: 0,
+    default: 1
+  },
+  capacity: {
+    type: Number,
+    required: true,
+    min: 1,
+    default: 2
+  },
   facilities: [String],
   images: [String],
   description: String
@@ -26,7 +44,8 @@ const hotelSchema = new mongoose.Schema({
       required: true
     },
     en: {
-      type: String
+      type: String,
+      required: true
     }
   },
   address: {
@@ -60,14 +79,53 @@ const hotelSchema = new mongoose.Schema({
     title: String,
     description: String,
     discount: Number,
+    discountType: {
+      type: String,
+      enum: ['percentage', 'fixed', 'special'],
+      default: 'percentage'
+    },
+    scenario: {
+      type: String,
+      enum: ['earlybird', 'lastminute', 'longstay', 'weekend', 'holiday', 'member', 'other'],
+      default: 'other'
+    },
     startDate: Date,
     endDate: Date
   }],
-  nearbyAttractions: [String],
+  nearby: {
+    attractions: [{
+      name: String,
+      distance: String,
+      type: {
+        type: String,
+        enum: ['scenic', 'museum', 'park', 'landmark', 'other']
+      }
+    }],
+    transportation: [{
+      name: String,
+      distance: String,
+      type: {
+        type: String,
+        enum: ['subway', 'bus', 'train', 'airport', 'other']
+      }
+    }],
+    shopping: [{
+      name: String,
+      distance: String,
+      type: {
+        type: String,
+        enum: ['mall', 'supermarket', 'market', 'other']
+      }
+    }]
+  },
   isDeleted: {
     type: Boolean,
     default: false
-  }
+  },
+  offlineDate: {
+    type: Date
+  },
+  offlineReason: String
 }, {
   timestamps: true
 });

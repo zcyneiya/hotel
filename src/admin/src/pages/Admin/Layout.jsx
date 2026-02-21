@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Layout, Menu } from 'antd';
-import { AuditOutlined, HomeOutlined, LogoutOutlined } from '@ant-design/icons';
+import { AuditOutlined, HomeOutlined, LogoutOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../../store/authStore';
 
 const { Header, Content, Sider } = Layout;
@@ -27,6 +27,12 @@ function AdminLayout() {
       icon: <HomeOutlined />,
       label: '酒店管理',
       onClick: () => navigate('/admin/hotels')
+    },
+    {
+      key: 'offline',
+      icon: <DeleteOutlined />,
+      label: '下线酒店',
+      onClick: () => navigate('/admin/offline')
     }
   ];
 

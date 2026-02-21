@@ -13,7 +13,7 @@ const auditSchema = new mongoose.Schema({
   },
   action: {
     type: String,
-    enum: ['submit', 'approve', 'reject', 'offline'],
+    enum: ['submit', 'approve', 'reject', 'offline', 'restore'],
     required: true
   },
   reason: String,

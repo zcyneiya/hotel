@@ -5,8 +5,7 @@ import Audit from '../models/Audit.js';
 export const getMerchantHotels = async (req, res) => {
   try {
     const hotels = await Hotel.find({ 
-      merchantId: req.user.id,
-      isDeleted: false 
+      merchantId: req.user.id
     }).sort({ createdAt: -1 });
 
     res.json({
