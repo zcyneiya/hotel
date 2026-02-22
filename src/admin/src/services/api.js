@@ -31,3 +31,10 @@ export const auditService = {
   restoreHotel: (id) => api.post(`/audits/hotels/${id}/restore`),
   getAuditLogs: (hotelId) => api.get(`/audits/hotels/${hotelId}/logs`)
 };
+
+// 商户端地图选址周边推荐
+// params: { location: 'lng,lat', types: '110000|150000|060000', radius?: number }
+export const poiService = {
+  getAround: (params) => api.get('/poi/around', { params })
+};
+
