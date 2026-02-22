@@ -23,6 +23,12 @@ export interface Hotel {
   };
   reviews?: Review[];
   originalPrice?: number;
+    nearby?: {
+    attractions?: { name: string; distance?: string; type?: string }[];
+    transportation?: { name: string; distance?: string; type?: string }[];
+    shopping?: { name: string; distance?: string; type?: string }[];
+  };
+
 }
 
 export interface promotion {
