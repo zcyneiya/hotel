@@ -18,8 +18,16 @@ const transformNearbyData = (hotel) => {
 // 创建酒店
 export const createHotel = async (req, res) => {
   try {
+    const normalizeLocation = (loc) => {
+      if (!loc) return undefined;
+      const lng = Number(loc.lng);
+      const lat = Number(loc.lat);
+      return Number.isFinite(lng) && Number.isFinite(lat) ? { lng, lat } : undefined;
+    };
+    
     const hotelData = {
       ...req.body,
+      location: normalizeLocation(req.body.location),
       merchantId: req.user.id,
       status: 'draft'
     };
