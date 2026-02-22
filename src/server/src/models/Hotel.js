@@ -92,6 +92,10 @@ const hotelSchema = new mongoose.Schema({
     startDate: Date,
     endDate: Date
   }],
+  location: {
+    lng: Number,
+    lat: Number
+  },
   nearby: {
     attractions: [{
       name: String,

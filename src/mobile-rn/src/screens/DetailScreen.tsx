@@ -14,9 +14,11 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { hotelService } from '../services/hotelService';
+import { poiService } from '../services/poiService';
 import { Hotel } from '../types/hotel';
 import { getImageUrl } from '../utils/imageUrl';
 import DateRangePicker from '../components/DateRangePicker';
+
 
 const { width } = Dimensions.get('window');
 
@@ -38,6 +40,15 @@ const DetailScreen = () => {
   const [checkOutDate, setCheckOutDate] = useState('');
   const [guestCount, setGuestCount] = useState(2);
   const [roomCount, setRoomCount] = useState(1);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [showAllAttractions, setShowAllAttractions] = useState(false);
+  const [showAllTransport, setShowAllTransport] = useState(false);
+  const [showAllMalls, setShowAllMalls] = useState(false);
+  type NearbyPoi = { name: string; distance?: string };
+  const [nearbyAttractions, setNearbyAttractions] = useState<NearbyPoi[]>([]);
+  const [nearbyTransport, setNearbyTransport] = useState<NearbyPoi[]>([]);
+  const [nearbyMalls, setNearbyMalls] = useState<NearbyPoi[]>([]);
+
 
   useEffect(() => {
     fetchHotel();
@@ -51,6 +62,47 @@ const DetailScreen = () => {
       Alert.alert('错误', error.message || '加载失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNearby = async () => {
+    if (!hotel?.address) {
+      Alert.alert('提示', '酒店地址为空，无法定位');
+      return;
+    }
+
+    try {
+      setNearbyLoading(true);
+
+      const geoRes = await poiService.geocode(hotel.address, hotel.city);
+      const location = geoRes?.data?.location; // "lng,lat"
+
+      if (!location) {
+        Alert.alert('提示', '定位失败');
+        return;
+      }
+
+      const [scenicRes, transportRes, mallRes] = await Promise.all([
+        poiService.around(location, '110000'),
+        poiService.around(location, '150000'),
+        poiService.around(location, '060000'),
+      ]);
+
+      const scenic = scenicRes?.data?.pois || [];
+      const transport = transportRes?.data?.pois || [];
+      const malls = mallRes?.data?.pois || [];
+
+      const mapPoi = (list: any[]) =>
+        list.map((p) => ({ name: p.name, distance: p.distance })).slice(0, 20);
+
+      setNearbyAttractions(mapPoi(scenic));
+      setNearbyTransport(mapPoi(transport));
+      setNearbyMalls(mapPoi(malls));
+      
+    } catch (err: any) {
+      Alert.alert('错误', err.message || '更新周边信息失败');
+    } finally {
+      setNearbyLoading(false);
     }
   };
 
@@ -156,6 +208,49 @@ const DetailScreen = () => {
 
   const avgRating = hotel.rating || 4.8;
 
+  const toPoi = (list: any[]) =>
+    list.map((item) =>
+      typeof item === 'string'
+        ? { name: item }
+        : { name: item.name, distance: item.distance }
+    );
+
+  const nearbyAttractionsView =
+    nearbyAttractions.length > 0
+      ? nearbyAttractions
+      : toPoi(hotel?.nearby?.attractions || hotel?.nearbyAttractions || []);
+
+  const nearbyTransportView =                         
+    nearbyTransport.length > 0
+      ? nearbyTransport
+      : toPoi(hotel?.nearby?.transportation || hotel?.nearbyTransport || []);
+
+  const nearbyMallsView =
+    nearbyMalls.length > 0
+      ? nearbyMalls
+      : toPoi(hotel?.nearby?.shopping || hotel?.nearbyMalls || []);
+
+  const attractionsDisplay = showAllAttractions
+    ? nearbyAttractionsView
+    : nearbyAttractionsView.slice(0, 5);
+
+  const transportDisplay = showAllTransport
+    ? nearbyTransportView
+    : nearbyTransportView.slice(0, 5);
+
+  const mallsDisplay = showAllMalls
+    ? nearbyMallsView
+    : nearbyMallsView.slice(0, 5);
+
+  const formatDistance = (distance?: string) => {
+    if (!distance) return '';
+    const meters = Number(distance);
+    if (Number.isNaN(meters)) return distance;
+    if (meters < 1000) return `${meters}m`;
+    return `${(meters / 1000).toFixed(1)}km`;
+  };
+
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -239,25 +334,79 @@ const DetailScreen = () => {
             <Text style={styles.address}>{hotel.address || '市中心'}</Text>
           </View>
 
+          <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#FF385C',
+                paddingVertical: 10,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}
+              onPress={fetchNearby}
+              disabled={nearbyLoading}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                {nearbyLoading ? '加载中...' : '更新周边信息'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+
           {/* 附近景点、交通、商场 */}
           {(hotel.nearbyAttractions || hotel.nearbyTransport || hotel.nearbyMalls) && (
             <View style={styles.nearbySection}>
-              {hotel.nearbyAttractions && hotel.nearbyAttractions.length > 0 && (
+              {nearbyAttractionsView.length > 0 && (
                 <View style={styles.nearbyItem}>
                   <Text style={styles.nearbyLabel}>🎯 附近景点:</Text>
-                  <Text style={styles.nearbyText}>{hotel.nearbyAttractions.join(', ')}</Text>
+                  {attractionsDisplay.map((item, idx) => (
+                    <Text key={idx} style={styles.nearbyText}>
+                      {item.name}
+                      {item.distance ? ` · ${formatDistance(item.distance)}` : ''}
+                    </Text>
+                  ))}
+                  {nearbyAttractionsView.length > 5 && (
+                    <TouchableOpacity onPress={() => setShowAllAttractions(!showAllAttractions)}>
+                      <Text style={{ color: '#FF385C', marginTop: 4 }}>
+                        {showAllAttractions ? '收起' : '展开更多'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
-              {hotel.nearbyTransport && hotel.nearbyTransport.length > 0 && (
+              {nearbyTransportView.length > 0 && (
                 <View style={styles.nearbyItem}>
                   <Text style={styles.nearbyLabel}>🚇 交通:</Text>
-                  <Text style={styles.nearbyText}>{hotel.nearbyTransport.join(', ')}</Text>
+                  {transportDisplay.map((item, idx) => (
+                    <Text key={idx} style={styles.nearbyText}>
+                      {item.name}
+                      {item.distance ? ` · ${item.distance}m` : ''}
+                    </Text>
+                  ))}
+                  {nearbyTransportView.length > 5 && (
+                    <TouchableOpacity onPress={() => setShowAllTransport(!showAllTransport)}>
+                      <Text style={{ color: '#FF385C', marginTop: 4 }}>
+                        {showAllTransport ? '收起' : '展开更多'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
-              {hotel.nearbyMalls && hotel.nearbyMalls.length > 0 && (
+              {nearbyMallsView.length > 0 && (
                 <View style={styles.nearbyItem}>
                   <Text style={styles.nearbyLabel}>🛍️ 商场:</Text>
-                  <Text style={styles.nearbyText}>{hotel.nearbyMalls.join(', ')}</Text>
+                  {mallsDisplay.map((item, idx) => (
+                    <Text key={idx} style={styles.nearbyText}>
+                      {item.name}
+                      {item.distance ? ` · ${item.distance}m` : ''}
+                    </Text>
+                  ))}
+                  {nearbyMallsView.length > 5 && (
+                    <TouchableOpacity onPress={() => setShowAllMalls(!showAllMalls)}>
+                      <Text style={{ color: '#FF385C', marginTop: 4 }}>
+                        {showAllMalls ? '收起' : '展开更多'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </View>
