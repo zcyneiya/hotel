@@ -24,6 +24,15 @@ function HotelView() {
   // 促销活动相关状态
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState(null);
+  const scenarioMap = {
+    earlybird: '早鸟优惠',
+    lastminute: '尾房特惠',
+    longstay: '连住优惠',
+    weekend: '周末特惠',
+    holiday: '节假日优惠',
+    member: '会员专享',
+    other: '其他'
+  };
 
   useEffect(() => {
     fetchHotelDetail();
@@ -332,7 +341,7 @@ function HotelView() {
               >
                 <Descriptions bordered column={2} size="small">
                   <Descriptions.Item label="描述" span={2}>
-                    {promo.description}
+                    {promo.description || '-'}
                   </Descriptions.Item>
                   <Descriptions.Item label="折扣">
                     {promo.discountType === 'percentage' && `${promo.discount}%`}
@@ -340,7 +349,7 @@ function HotelView() {
                     {promo.discountType === 'special' && '特价'}
                   </Descriptions.Item>
                   <Descriptions.Item label="场景">
-                    {promo.scenario}
+                    {scenarioMap[promo.scenario] || '-'}
                   </Descriptions.Item>
                   <Descriptions.Item label="开始日期">
                     {promo.startDate ? new Date(promo.startDate).toLocaleDateString() : '-'}
@@ -357,23 +366,35 @@ function HotelView() {
         )}
       </Card>
     </div >
-      <Modal
-        title={editingPromo ? '编辑促销活动' : '新增促销活动'}
-        open={isPromoModalOpen}
-        onCancel={() => setIsPromoModalOpen(false)}
-        footer={null}
-      >
-        <PromotionForm
-          hotelId={id}
-          promo={editingPromo}
-          onSuccess={() => {
-            setIsPromoModalOpen(false);
-            fetchHotelDetail();
-          }}
-        />
-      </Modal>
+      <PromptionModal
+        editingPromo={editingPromo}
+        hotelId={id}
+        isPromoModalOpen={isPromoModalOpen}
+        setIsPromoModalOpen={setIsPromoModalOpen}
+        fetchHotelDetail={fetchHotelDetail}
+      />
     </>
   );
+}
+
+function PromptionModal({ editingPromo, hotelId, isPromoModalOpen, setIsPromoModalOpen, fetchHotelDetail }) {
+  return (
+    <Modal
+      title={editingPromo ? '编辑促销活动' : '新增促销活动'}
+      open={isPromoModalOpen}
+      onCancel={() => setIsPromoModalOpen(false)}
+      footer={null}
+    >
+      <PromotionForm
+        hotelId={hotelId}
+        promo={editingPromo}
+        onSuccess={() => {
+          setIsPromoModalOpen(false);
+          fetchHotelDetail();
+        }}
+      />
+    </Modal>
+  )
 }
 
 function PromotionForm({ hotelId, promo, onSuccess }) {

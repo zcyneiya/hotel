@@ -111,12 +111,13 @@ export const updateRoomPrice = async (req, res) => {
     }
 
     room.price = price;
+    hotel.status = 'pending';
 
     await hotel.save();
 
     res.json({
       success: true,
-      message: '房间价格更新成功'
+      message: '更新房间价格审核中'
     });
 
   } catch (error) {
@@ -165,12 +166,13 @@ export const createPromotion = async (req, res) => {
     };
 
     hotel.promotions.push(newPromotion);
+    hotel.status = 'pending';
 
     await hotel.save();
 
     res.json({
       success: true,
-      message: '促销活动创建成功',
+      message: '创建促销活动活动审核中',
       data: hotel.promotions
     });
 
@@ -199,12 +201,13 @@ export const updatePromotion = async (req, res) => {
     }
 
     Object.assign(promo, req.body);
+    hotel.status = 'pending';
 
     await hotel.save();
 
     res.json({
       success: true,
-      message: '促销活动更新成功'
+      message: '更新促销活动审核中'
     });
 
   } catch (error) {
