@@ -12,4 +12,19 @@ export type RootStackParamList = {
   Detail: {
     id: string;
   };
+  Map: {
+    hotelId: string;
+    hotelName: string;
+    address: string;
+    city?: string;
+    location?: {
+      lat: number;
+      lng: number;
+    };
+    nearby?: {
+      attractions?: { name: string; distance?: string; location?: string }[];
+      transportation?: { name: string; distance?: string; location?: string }[];
+      shopping?: { name: string; distance?: string; location?: string }[];
+    };
+  };
 };

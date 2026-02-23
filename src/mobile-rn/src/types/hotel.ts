@@ -23,10 +23,25 @@ export interface Hotel {
   };
   reviews?: Review[];
   originalPrice?: number;
-    nearby?: {
-    attractions?: { name: string; distance?: string; type?: string }[];
-    transportation?: { name: string; distance?: string; type?: string }[];
-    shopping?: { name: string; distance?: string; type?: string }[];
+  nearby?: {
+    attractions?: {
+      name: string;
+      distance?: string;
+      type?: string;
+      location?: string;
+    }[];
+    transportation?: {
+      name: string;
+      distance?: string;
+      type?: string;
+      location?: string;
+    }[];
+    shopping?: {
+      name: string;
+      distance?: string;
+      type?: string;
+      location?: string;
+    }[];
   };
 
 }
