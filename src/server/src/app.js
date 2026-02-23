@@ -8,6 +8,8 @@ import authRoutes from './routes/auth.js';
 import hotelRoutes from './routes/hotel.js';
 import auditRoutes from './routes/audit.js';
 import uploadRoutes from './routes/upload.js';
+import poiRoutes from './routes/poi.js'; 
+
 
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -35,6 +37,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/audits', auditRoutes);
 app.use('/api/upload', uploadRoutes); // Register upload route
+app.use('/api/poi', poiRoutes);
 
 // 健康检查
 app.get('/health', (req, res) => {

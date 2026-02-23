@@ -29,6 +29,16 @@ export const updateHotel = async (req, res) => {
       return res.status(404).json({ message: '酒店不存在或无权限' });
     }
 
+    if (req.body.location) {
+      const lng = Number(req.body.location.lng);
+      const lat = Number(req.body.location.lat);
+      if (Number.isFinite(lng) && Number.isFinite(lat)) {
+        req.body.location = { lng, lat };
+      } else {
+        delete req.body.location; 
+      }
+    }
+
     Object.assign(hotel, req.body);
     await hotel.save();
 
