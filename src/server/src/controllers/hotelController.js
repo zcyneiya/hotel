@@ -4,14 +4,14 @@ import Audit from '../models/Audit.js';
 // 转换 nearby 数据为移动端格式
 const transformNearbyData = (hotel) => {
   const hotelObj = hotel.toObject ? hotel.toObject() : hotel;
-  
+
   // 如果有 nearby 对象，转换为移动端需要的格式
   if (hotelObj.nearby) {
     hotelObj.nearbyAttractions = hotelObj.nearby.attractions?.map(a => a.name) || [];
     hotelObj.nearbyTransport = hotelObj.nearby.transportation?.map(t => t.name) || [];
     hotelObj.nearbyMalls = hotelObj.nearby.shopping?.map(s => s.name) || [];
   }
-  
+
   return hotelObj;
 };
 
@@ -24,7 +24,7 @@ export const createHotel = async (req, res) => {
       const lat = Number(loc.lat);
       return Number.isFinite(lng) && Number.isFinite(lat) ? { lng, lat } : undefined;
     };
-    
+
     const hotelData = {
       ...req.body,
       location: normalizeLocation(req.body.location),
@@ -54,20 +54,20 @@ export const getHotels = async (req, res) => {
 
     // 解析 priceRange 参数
     if (priceRange) {
-        if (priceRange === '1000-') {
-            minPrice = 1000;
-            maxPrice = undefined;
-        } else {
-            const parts = priceRange.split('-');
-            if (parts.length === 2) {
-                minPrice = parseInt(parts[0]);
-                maxPrice = parseInt(parts[1]);
-            }
+      if (priceRange === '1000-') {
+        minPrice = 1000;
+        maxPrice = undefined;
+      } else {
+        const parts = priceRange.split('-');
+        if (parts.length === 2) {
+          minPrice = parseInt(parts[0]);
+          maxPrice = parseInt(parts[1]);
         }
+      }
     } else {
-        // use minPrice and maxPrice from query params
-        if (req.query.minPrice !== undefined) minPrice = parseInt(req.query.minPrice);
-        if (req.query.maxPrice !== undefined) maxPrice = parseInt(req.query.maxPrice);
+      // use minPrice and maxPrice from query params
+      if (req.query.minPrice !== undefined) minPrice = parseInt(req.query.minPrice);
+      if (req.query.maxPrice !== undefined) maxPrice = parseInt(req.query.maxPrice);
     }
 
     // 解析 facilities 参数
@@ -91,12 +91,12 @@ export const getHotels = async (req, res) => {
     if (city && city !== 'undefined') {
       query.city = { $regex: city.replace(/市$/, ''), $options: 'i' };
     }
-    
+
     // 星级筛选（只有有效数字才添加）
     if (starLevel && starLevel !== 'undefined' && !isNaN(parseInt(starLevel))) {
       query.starLevel = parseInt(starLevel);
     }
-    
+
     // 关键字搜索
     if (keyword && keyword !== 'undefined') {
       const keywordRegex = { $regex: keyword, $options: 'i' };
@@ -112,7 +112,7 @@ export const getHotels = async (req, res) => {
       const priceQuery = {};
       if (minPrice !== undefined && !isNaN(minPrice)) priceQuery.$gte = minPrice;
       if (maxPrice !== undefined && !isNaN(maxPrice)) priceQuery.$lte = maxPrice;
-      
+
       if (Object.keys(priceQuery).length > 0) {
         query.rooms = { $elemMatch: { price: priceQuery } };
       }
@@ -122,11 +122,11 @@ export const getHotels = async (req, res) => {
     if (facilitiesList.length > 0) {
       query.facilities = { $all: facilitiesList };
     }
-    
+
     // 评分筛选 (临时使用 starLevel 作为评分依据，或者如果有评分字段再改)
     if (rating) {
-        // 由于没有评分字段，暂时不做过滤，或者如果 starLevel 可以作为评分参考
-        // query.starLevel = { $gte: parseFloat(rating) };
+      // 由于没有评分字段，暂时不做过滤，或者如果 starLevel 可以作为评分参考
+      // query.starLevel = { $gte: parseFloat(rating) };
     }
 
     console.log('解码后的城市:', city);
@@ -158,9 +158,9 @@ export const getHotels = async (req, res) => {
     });
   } catch (error) {
     console.error('查询酒店失败:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: error.message 
+      message: error.message
     });
   }
 };
