@@ -18,6 +18,9 @@ import { poiService } from '../services/poiService';
 import { Hotel } from '../types/hotel';
 import { getImageUrl } from '../utils/imageUrl';
 import DateRangePicker from '../components/DateRangePicker';
+import MapButton from '../components/detail/MapButton';
+import NearbySection from '../components/detail/NearbySection';
+import { mapAmapPois, normalizePoiList, type NearbyPoi } from '../utils/poi';
 
 
 const { width } = Dimensions.get('window');
@@ -41,10 +44,6 @@ const DetailScreen = () => {
   const [guestCount, setGuestCount] = useState(2);
   const [roomCount, setRoomCount] = useState(1);
   const [nearbyLoading, setNearbyLoading] = useState(false);
-  const [showAllAttractions, setShowAllAttractions] = useState(false);
-  const [showAllTransport, setShowAllTransport] = useState(false);
-  const [showAllMalls, setShowAllMalls] = useState(false);
-  type NearbyPoi = { name: string; distance?: string };
   const [nearbyAttractions, setNearbyAttractions] = useState<NearbyPoi[]>([]);
   const [nearbyTransport, setNearbyTransport] = useState<NearbyPoi[]>([]);
   const [nearbyMalls, setNearbyMalls] = useState<NearbyPoi[]>([]);
@@ -92,8 +91,7 @@ const DetailScreen = () => {
       const transport = transportRes?.data?.pois || [];
       const malls = mallRes?.data?.pois || [];
 
-      const mapPoi = (list: any[]) =>
-        list.map((p) => ({ name: p.name, distance: p.distance })).slice(0, 20);
+      const mapPoi = (list: any[]) => mapAmapPois(list).slice(0, 20);
 
       setNearbyAttractions(mapPoi(scenic));
       setNearbyTransport(mapPoi(transport));
@@ -208,48 +206,42 @@ const DetailScreen = () => {
 
   const avgRating = hotel.rating || 4.8;
 
-  const toPoi = (list: any[]) =>
-    list.map((item) =>
-      typeof item === 'string'
-        ? { name: item }
-        : { name: item.name, distance: item.distance }
-    );
+  const handleOpenMap = () => {
+    if (!hotel) return;
+    navigation.navigate('Map', {
+      hotelId: hotel._id,
+      hotelName: getHotelName(hotel.name),
+      address: hotel.address || '',
+      city: hotel.city,
+      location: hotel.location,
+      nearby: {
+        attractions: nearbyAttractionsView,
+        transportation: nearbyTransportView,
+        shopping: nearbyMallsView,
+      },
+    });
+  };
 
   const nearbyAttractionsView =
     nearbyAttractions.length > 0
       ? nearbyAttractions
-      : toPoi(hotel?.nearby?.attractions || hotel?.nearbyAttractions || []);
+      : normalizePoiList(
+          hotel?.nearby?.attractions || hotel?.nearbyAttractions || []
+        );
 
   const nearbyTransportView =                         
     nearbyTransport.length > 0
       ? nearbyTransport
-      : toPoi(hotel?.nearby?.transportation || hotel?.nearbyTransport || []);
+      : normalizePoiList(
+          hotel?.nearby?.transportation || hotel?.nearbyTransport || []
+        );
 
   const nearbyMallsView =
     nearbyMalls.length > 0
       ? nearbyMalls
-      : toPoi(hotel?.nearby?.shopping || hotel?.nearbyMalls || []);
-
-  const attractionsDisplay = showAllAttractions
-    ? nearbyAttractionsView
-    : nearbyAttractionsView.slice(0, 5);
-
-  const transportDisplay = showAllTransport
-    ? nearbyTransportView
-    : nearbyTransportView.slice(0, 5);
-
-  const mallsDisplay = showAllMalls
-    ? nearbyMallsView
-    : nearbyMallsView.slice(0, 5);
-
-  const formatDistance = (distance?: string) => {
-    if (!distance) return '';
-    const meters = Number(distance);
-    if (Number.isNaN(meters)) return distance;
-    if (meters < 1000) return `${meters}m`;
-    return `${(meters / 1000).toFixed(1)}km`;
-  };
-
+      : normalizePoiList(
+          hotel?.nearby?.shopping || hotel?.nearbyMalls || []
+        );
 
   return (
     <View style={styles.container}>
@@ -332,85 +324,16 @@ const DetailScreen = () => {
 
           <View style={styles.addressRow}>
             <Text style={styles.address}>{hotel.address || '市中心'}</Text>
+            <MapButton onPress={handleOpenMap} />
           </View>
 
-          <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#FF385C',
-                paddingVertical: 10,
-                borderRadius: 8,
-                alignItems: 'center',
-              }}
-              onPress={fetchNearby}
-              disabled={nearbyLoading}
-            >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>
-                {nearbyLoading ? '加载中...' : '更新周边信息'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-
-          {/* 附近景点、交通、商场 */}
-          {(hotel.nearbyAttractions || hotel.nearbyTransport || hotel.nearbyMalls) && (
-            <View style={styles.nearbySection}>
-              {nearbyAttractionsView.length > 0 && (
-                <View style={styles.nearbyItem}>
-                  <Text style={styles.nearbyLabel}>🎯 附近景点:</Text>
-                  {attractionsDisplay.map((item, idx) => (
-                    <Text key={idx} style={styles.nearbyText}>
-                      {item.name}
-                      {item.distance ? ` · ${formatDistance(item.distance)}` : ''}
-                    </Text>
-                  ))}
-                  {nearbyAttractionsView.length > 5 && (
-                    <TouchableOpacity onPress={() => setShowAllAttractions(!showAllAttractions)}>
-                      <Text style={{ color: '#FF385C', marginTop: 4 }}>
-                        {showAllAttractions ? '收起' : '展开更多'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-              {nearbyTransportView.length > 0 && (
-                <View style={styles.nearbyItem}>
-                  <Text style={styles.nearbyLabel}>🚇 交通:</Text>
-                  {transportDisplay.map((item, idx) => (
-                    <Text key={idx} style={styles.nearbyText}>
-                      {item.name}
-                      {item.distance ? ` · ${item.distance}m` : ''}
-                    </Text>
-                  ))}
-                  {nearbyTransportView.length > 5 && (
-                    <TouchableOpacity onPress={() => setShowAllTransport(!showAllTransport)}>
-                      <Text style={{ color: '#FF385C', marginTop: 4 }}>
-                        {showAllTransport ? '收起' : '展开更多'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-              {nearbyMallsView.length > 0 && (
-                <View style={styles.nearbyItem}>
-                  <Text style={styles.nearbyLabel}>🛍️ 商场:</Text>
-                  {mallsDisplay.map((item, idx) => (
-                    <Text key={idx} style={styles.nearbyText}>
-                      {item.name}
-                      {item.distance ? ` · ${item.distance}m` : ''}
-                    </Text>
-                  ))}
-                  {nearbyMallsView.length > 5 && (
-                    <TouchableOpacity onPress={() => setShowAllMalls(!showAllMalls)}>
-                      <Text style={{ color: '#FF385C', marginTop: 4 }}>
-                        {showAllMalls ? '收起' : '展开更多'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
+          <NearbySection
+            attractions={nearbyAttractionsView}
+            transport={nearbyTransportView}
+            malls={nearbyMallsView}
+            loading={nearbyLoading}
+            onRefresh={fetchNearby}
+          />
         </View>
 
         {/* 分隔线 */}
@@ -781,6 +704,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    justifyContent: 'space-between',
   },
   locationIcon: {
     fontSize: 16,
@@ -790,23 +714,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#666',
-  },
-  nearbySection: {
-    marginTop: 8,
-  },
-  nearbyItem: {
-    marginBottom: 8,
-  },
-  nearbyLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  nearbyText: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 20,
   },
   sectionContainer: {
     padding: 20,
