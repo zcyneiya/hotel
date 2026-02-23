@@ -17,7 +17,12 @@ export const hotelService = {
   submitForReview: (id) => api.post(`/hotels/${id}/submit`),
   uploadImage: (formData) => api.post('/upload/image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  }),
+  // 更新房型价格 data: { roomId: string, price: number }
+  updateRoomPrice: (id, data) => api.put(`/hotels/${id}/room-price`, data),
+  // 促销活动相关接口
+  createPromotion: (id, data) => api.post(`/hotels/${id}/promotions`, data),
+  updatePromotion: (hotelId, promoId, data) => api.put(`/hotels/${hotelId}/promotions/${promoId}`, data)
 };
 
 // 审核服务

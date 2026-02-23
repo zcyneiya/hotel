@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Tag, Space, Button, Image, message, Spin, Divider } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, DatePicker, Select, Card, Descriptions, Tag, Space, Button, InputNumber, Image, message, Spin, Divider } from 'antd';
+import { ArrowLeftOutlined, EditOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { hotelService } from '../../services/api';
+import dayjs from 'dayjs';
 
 const statusMap = {
   draft: { text: '草稿', color: 'default' },
@@ -17,6 +18,12 @@ function HotelView() {
   const navigate = useNavigate();
   const [hotel, setHotel] = useState(null);
   const [loading, setLoading] = useState(true);
+  // 编辑房价相关状态
+  const [editingRoomId, setEditingRoomId] = useState(null);
+  const [editingPrice, setEditingPrice] = useState(null);
+  // 促销活动相关状态
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
+  const [editingPromo, setEditingPromo] = useState(null);
 
   useEffect(() => {
     fetchHotelDetail();
@@ -51,8 +58,23 @@ function HotelView() {
     );
   }
 
+  const handleSavePrice = async (roomId) => {
+    try {
+      await hotelService.updateRoomPrice(id, {
+        roomId,
+        price: editingPrice
+      });
+
+      message.success('价格修改成功');
+      setEditingRoomId(null);
+      fetchHotelDetail();
+    } catch (err) {
+      message.error('修改失败');
+    }
+  };
+
   return (
-    <div>
+    <><div>
       <div style={{ marginBottom: 16 }}>
         <Button
           icon={<ArrowLeftOutlined />}
@@ -109,8 +131,7 @@ function HotelView() {
                   key={index}
                   width={200}
                   src={img}
-                  alt={`酒店图片${index + 1}`}
-                />
+                  alt={`酒店图片${index + 1}`} />
               ))}
             </Space>
           </Image.PreviewGroup>
@@ -185,7 +206,9 @@ function HotelView() {
         )}
       </Card>
 
-      <Card title="房型信息" style={{ marginTop: 16 }}>
+      <Card
+        title="房型信息"
+        style={{ marginTop: 16 }}>
         {hotel.rooms && hotel.rooms.length > 0 ? (
           <Space direction="vertical" style={{ width: '100%' }} size="large">
             {hotel.rooms.map((room, index) => (
@@ -197,7 +220,34 @@ function HotelView() {
               >
                 <Descriptions bordered column={2} size="small">
                   <Descriptions.Item label="价格">
-                    ¥{room.price}
+                    {editingRoomId === room._id ? (
+                      <Space>
+                        <InputNumber
+                          min={0}
+                          value={editingPrice}
+                          onChange={(value) => setEditingPrice(value)}
+                        />
+                        <CheckOutlined
+                          style={{ color: '#52c41a', cursor: 'pointer' }}
+                          onClick={() => handleSavePrice(room._id)}
+                        />
+                        <CloseOutlined
+                          style={{ color: '#ff4d4f', cursor: 'pointer' }}
+                          onClick={() => setEditingRoomId(null)}
+                        />
+                      </Space>
+                    ) : (
+                      <Space>
+                        <span>¥{room.price}</span>
+                        <EditOutlined
+                          style={{ color: '#1890ff', cursor: 'pointer' }}
+                          onClick={() => {
+                            setEditingRoomId(room._id);
+                            setEditingPrice(room.price);
+                          }}
+                        />
+                      </Space>
+                    )}
                   </Descriptions.Item>
                   <Descriptions.Item label="容纳人数">
                     {room.capacity}人
@@ -233,8 +283,7 @@ function HotelView() {
                             key={imgIdx}
                             width={150}
                             src={img}
-                            alt={`房间图片${imgIdx + 1}`}
-                          />
+                            alt={`房间图片${imgIdx + 1}`} />
                         ))}
                       </Space>
                     </Image.PreviewGroup>
@@ -247,12 +296,40 @@ function HotelView() {
           <p>暂无房型信息</p>
         )}
       </Card>
-
-      <Card title="促销活动" style={{ marginTop: 16 }}>
+      <Card title="促销活动" extra={
+        <Button
+          type="primary"
+          size="small"
+          onClick={() => {
+            setEditingPromo(null);
+            setIsPromoModalOpen(true);
+          }}
+        >
+          新增
+        </Button>
+      } style={{ marginTop: 16 }}>
         {hotel.promotions && hotel.promotions.length > 0 ? (
           <Space direction="vertical" style={{ width: '100%' }} size="large">
             {hotel.promotions.map((promo, index) => (
-              <Card key={index} type="inner" title={promo.title}>
+              <Card
+                key={promo._id || index}
+                type="inner"
+                title={promo.title}
+                extra={
+                  <Space>
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={() => {
+                        setEditingPromo(promo);
+                        setIsPromoModalOpen(true);
+                      }}
+                    >
+                      编辑
+                    </Button>
+                  </Space>
+                }
+              >
                 <Descriptions bordered column={2} size="small">
                   <Descriptions.Item label="描述" span={2}>
                     {promo.description}
@@ -279,7 +356,146 @@ function HotelView() {
           <p>暂无促销活动</p>
         )}
       </Card>
-    </div>
+    </div >
+      <Modal
+        title={editingPromo ? '编辑促销活动' : '新增促销活动'}
+        open={isPromoModalOpen}
+        onCancel={() => setIsPromoModalOpen(false)}
+        footer={null}
+      >
+        <PromotionForm
+          hotelId={id}
+          promo={editingPromo}
+          onSuccess={() => {
+            setIsPromoModalOpen(false);
+            fetchHotelDetail();
+          }}
+        />
+      </Modal>
+    </>
+  );
+}
+
+function PromotionForm({ hotelId, promo, onSuccess }) {
+  const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (promo) {
+      form.setFieldsValue({
+        ...promo,
+        startDate: promo.startDate ? dayjs(promo.startDate) : null,
+        endDate: promo.endDate ? dayjs(promo.endDate) : null
+      });
+    } else {
+      form.resetFields();
+    }
+  }, [promo]);
+
+  const onFinish = async (values) => {
+    try {
+      const payload = {
+        ...values,
+        startDate: values.startDate
+          ? values.startDate.toISOString()
+          : null,
+        endDate: values.endDate
+          ? values.endDate.toISOString()
+          : null
+      };
+
+      if (promo) {
+        await hotelService.updatePromotion(hotelId, promo._id, payload);
+      } else {
+        await hotelService.createPromotion(hotelId, payload);
+      }
+
+      message.success('操作成功');
+      onSuccess();
+    } catch {
+      message.error('操作失败');
+    }
+  };
+
+  return (
+    <Form form={form} layout="vertical" onFinish={onFinish}>
+      <Form.Item name="title" label="标题" rules={[{ required: true }]}>
+        <Input />
+      </Form.Item>
+      <Form.Item
+        label="优惠场景"
+        name="scenario"
+        rules={[{ required: true, message: '请选择优惠场景' }]}
+      >
+        <Select placeholder="选择场景">
+          <Select.Option value="earlybird">早鸟优惠</Select.Option>
+          <Select.Option value="lastminute">尾房特惠</Select.Option>
+          <Select.Option value="longstay">连住优惠</Select.Option>
+          <Select.Option value="weekend">周末特惠</Select.Option>
+          <Select.Option value="holiday">节假日优惠</Select.Option>
+          <Select.Option value="member">会员专享</Select.Option>
+          <Select.Option value="other">其他</Select.Option>
+        </Select>
+      </Form.Item>
+
+      <Form.Item name="description" label="描述">
+        <Input.TextArea />
+      </Form.Item>
+
+      <Form.Item name="discountType" label="折扣类型" rules={[{ required: true }]}>
+        <Select
+          options={[
+            { label: '百分比折扣', value: 'percentage' },
+            { label: '固定金额减免', value: 'fixed' },
+            { label: '特价', value: 'special' }
+          ]}
+        />
+      </Form.Item>
+
+      <Form.Item name="discount" label="折扣值" rules={[{ required: true }]}>
+        <InputNumber style={{ width: '100%' }} min={0} />
+      </Form.Item>
+
+      <Form.Item
+        name="startDate"
+        label="开始日期"
+        rules={[{ required: true, message: '请选择开始日期' }]}
+      >
+        <DatePicker style={{ width: '100%' }} />
+      </Form.Item>
+
+      <Form.Item
+        name="endDate"
+        label="结束日期"
+        dependencies={['startDate']}
+        rules={[
+          { required: true, message: '请选择结束日期' },
+          ({ getFieldValue }) => ({
+            validator(_, value) {
+              const startDate = getFieldValue('startDate');
+              if (!value || !startDate || value.isAfter(startDate)) {
+                return Promise.resolve();
+              }
+              return Promise.reject(
+                new Error('结束日期必须晚于开始日期')
+              );
+            }
+          })
+        ]}
+      >
+        <DatePicker style={{ width: '100%' }} />
+      </Form.Item>
+
+      <Form.Item>
+        <Space>
+          <Button type="primary" htmlType="submit">
+            提交
+          </Button>
+          <Button onClick={onSuccess}>
+            取消
+          </Button>
+        </Space>
+      </Form.Item>
+    </Form>
   );
 }
 

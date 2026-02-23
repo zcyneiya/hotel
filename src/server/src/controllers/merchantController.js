@@ -4,7 +4,7 @@ import Audit from '../models/Audit.js';
 // 获取商户的酒店列表
 export const getMerchantHotels = async (req, res) => {
   try {
-    const hotels = await Hotel.find({ 
+    const hotels = await Hotel.find({
       merchantId: req.user.id
     }).sort({ createdAt: -1 });
 
@@ -35,7 +35,7 @@ export const updateHotel = async (req, res) => {
       if (Number.isFinite(lng) && Number.isFinite(lat)) {
         req.body.location = { lng, lat };
       } else {
-        delete req.body.location; 
+        delete req.body.location;
       }
     }
 
@@ -81,6 +81,132 @@ export const submitForReview = async (req, res) => {
       message: '已提交审核',
       data: hotel
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+export const updateRoomPrice = async (req, res) => {
+  try {
+    const { roomId, price } = req.body;
+
+    if (typeof price !== 'number' || price < 0) {
+      return res.status(400).json({ message: '价格必须为非负数字' });
+    }
+
+    const hotel = await Hotel.findOne({
+      _id: req.params.id,
+      merchantId: req.user.id
+    });
+
+    if (!hotel) {
+      return res.status(404).json({ message: '酒店不存在或无权限' });
+    }
+
+    const room = hotel.rooms.id(roomId);
+
+    if (!room) {
+      return res.status(404).json({ message: '房型不存在' });
+    }
+
+    room.price = price;
+
+    await hotel.save();
+
+    res.json({
+      success: true,
+      message: '房间价格更新成功'
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+export const createPromotion = async (req, res) => {
+  try {
+    const { title, description, discount, discountType, scenario, startDate, endDate, roomIds } = req.body;
+
+    // 基础校验
+    if (!title || discount === undefined || !discountType) {
+      return res.status(400).json({
+        message: '标题、折扣类型、折扣值不能为空'
+      });
+    }
+
+    if (discount < 0) {
+      return res.status(400).json({
+        message: '折扣值不能为负数'
+      });
+    }
+
+    const hotel = await Hotel.findOne({
+      _id: req.params.id,
+      merchantId: req.user.id
+    });
+
+    if (!hotel) {
+      return res.status(404).json({
+        message: '酒店不存在或无权限'
+      });
+    }
+
+    const newPromotion = {
+      title,
+      description,
+      discount,
+      discountType,
+      scenario,
+      startDate,
+      endDate,
+      roomIds: roomIds || []
+    };
+
+    hotel.promotions.push(newPromotion);
+
+    await hotel.save();
+
+    res.json({
+      success: true,
+      message: '促销活动创建成功',
+      data: hotel.promotions
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
+
+export const updatePromotion = async (req, res) => {
+  try {
+    const hotel = await Hotel.findOne({
+      _id: req.params.id,
+      merchantId: req.user.id
+    });
+
+    if (!hotel) {
+      return res.status(404).json({ message: '酒店不存在或无权限' });
+    }
+
+    const promo = hotel.promotions.id(req.params.promoId);
+
+    if (!promo) {
+      return res.status(404).json({ message: '活动不存在' });
+    }
+
+    Object.assign(promo, req.body);
+
+    await hotel.save();
+
+    res.json({
+      success: true,
+      message: '促销活动更新成功'
+    });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
