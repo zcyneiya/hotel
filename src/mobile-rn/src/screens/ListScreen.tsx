@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -29,11 +29,13 @@ type ListScreenRouteProp = RouteProp<RootStackParamList, 'List'>;
 const ListScreen = () => {
   const navigation = useNavigation<ListScreenNavigationProp>();
   const route = useRoute<ListScreenRouteProp>();
+  const listRef = useRef<FlatList<Hotel>>(null);
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [showBackTop, setShowBackTop] = useState(false);
 
   // 搜索条件
   const [city, setCity] = useState(route.params?.city || '');
@@ -67,6 +69,12 @@ const ListScreen = () => {
     setActiveFilterTab(null);
   }, [priceRange, ratingFilter, facilitiesFilter]);
 
+  useEffect(() => {
+    if (activeFilterTab) {
+      setShowBackTop(false);
+    }
+  }, [activeFilterTab]);
+
   const fetchHotels = async (pageNum: number) => {
     if (loading && pageNum > 1) return; // Prevent multiple load more requests, but allow refresh/filter
 
@@ -94,7 +102,7 @@ const ListScreen = () => {
       if (pageNum === 1) {
         setHotels(response.data.hotels);
       } else {
-        setHotels([...hotels, ...response.data.hotels]);
+        setHotels(prev => [...prev, ...response.data.hotels]);
       }
 
       setHasMore(response.data.pagination.page < response.data.pagination.pages);
@@ -197,6 +205,20 @@ const ListScreen = () => {
     return `${parts[1]}-${parts[2]}`;
   };
 
+  const handleScroll = (event: any) => {
+    const offsetY = event?.nativeEvent?.contentOffset?.y || 0;
+    if (activeFilterTab) {
+      if (showBackTop) setShowBackTop(false);
+      return;
+    }
+    if (offsetY > 400 && !showBackTop) setShowBackTop(true);
+    if (offsetY <= 400 && showBackTop) setShowBackTop(false);
+  };
+
+  const handleBackTop = () => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  };
+
   return (
     <View style={styles.container}>
       {/* 顶部搜索信息栏 */}
@@ -225,12 +247,15 @@ const ListScreen = () => {
       <View style={{ flex: 1, zIndex: 1 }}>
         {/* 酒店列表 */}
         <FlatList
+          ref={listRef}
           data={hotels}
           renderItem={renderItem}
           keyExtractor={item => item._id}
           contentContainerStyle={styles.listContent}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5} // 调整阈值，防止在空列表时过早触发
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           onRefresh={handleRefresh}
           refreshing={refreshing}
           ListFooterComponent={renderFooter}
@@ -239,6 +264,15 @@ const ListScreen = () => {
           scrollEnabled={!activeFilterTab} // 当有筛选框打开时，禁止滚动
         />
       </View>
+
+      {showBackTop && !activeFilterTab && (
+        <TouchableOpacity style={styles.backTopBtn} onPress={handleBackTop}>
+          <View style={styles.backTopIcon}>
+            <View style={styles.backTopLine} />
+            <Text style={styles.backTopArrow}>↑</Text>
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* 日期选择器 */}
       <DateRangePicker
@@ -283,6 +317,42 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#999',
+  },
+  backTopBtn: {
+    position: 'absolute',
+    right: 16,
+    bottom: 80,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    width: 35,
+    height: 35,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    zIndex: 20,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  backTopIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backTopLine: {
+    width: 16,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#22222275',
+    marginBottom: 1,
+  },
+  backTopArrow: {
+    color: '#22222275',
+    fontSize: 32,
+    fontWeight: '700',
+    lineHeight: 17,
   },
 });
 
