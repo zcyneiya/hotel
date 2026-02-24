@@ -386,9 +386,10 @@ const styles = StyleSheet.create({
   },
   backTopArrow: {
     color: '#22222275',
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: '700',
-    lineHeight: 17,
+    lineHeight: 20,
+    marginTop: -2,
   },
 });
 
