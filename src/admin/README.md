@@ -49,6 +49,9 @@ npm run dev
 ### 商户端
 - 登录/注册（选择商户角色）
 - 酒店信息录入/编辑
+- 地图选址（高德 JS API）
+- 自动回填地址、经纬度
+- 自动推荐周边信息（景点/交通/商场）
 - 提交审核
 - 查看审核状态
 
@@ -63,4 +66,13 @@ npm run dev
 
 ```bash
 npm run build
+```
+
+## 环境变量
+
+管理端使用高德 JS API Key：
+
+```
+# src/admin/.env.local
+VITE_AMAP_JS_KEY=你的高德JS Key
 ```
