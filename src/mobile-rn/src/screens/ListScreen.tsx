@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  ScrollView,
-  TextInput, // Add TextInput import
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -76,7 +74,7 @@ const ListScreen = () => {
     }
   }, [activeFilterTab]);
 
-  const fetchHotels = async (pageNum: number) => {
+  const fetchHotels = useCallback(async (pageNum: number) => {
     if (loading && pageNum > 1) return; // Prevent multiple load more requests, but allow refresh/filter
 
     setLoading(true);
@@ -125,27 +123,27 @@ const ListScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [city, keyword, checkInDate, checkOutDate, priceRange, ratingFilter, facilitiesFilter, loading]);
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     // 只有当有更多数据，且不在加载中，且确实有数据时才加载下一页
     if (hasMore && !loading && hotels.length > 0) {
       fetchHotels(page + 1);
     }
-  };
+  }, [hasMore, loading, hotels.length, fetchHotels, page]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
     fetchHotels(1);
-  };
+  }, [fetchHotels]);
 
-  const goToDetail = (id: string) => {
+  const goToDetail = useCallback((id: string) => {
     navigation.navigate('Detail', { id });
-  };
+  }, [navigation]);
 
-  const handleFavorite = (hotelId: string) => {
+  const handleFavorite = useCallback((hotelId: string) => {
     Alert.alert('提示', '已收藏');
-  };
+  }, []);
 
   // 格式化日期显示
   const formatDateDisplay = (dateStr: string): string => {
@@ -165,21 +163,23 @@ const ListScreen = () => {
   };
 
   // 处理日期选择
-  const handleDateConfirm = (checkIn: string, checkOut: string) => {
+  const handleDateConfirm = useCallback((checkIn: string, checkOut: string) => {
     setCheckInDate(checkIn);
     setCheckOutDate(checkOut);
     fetchHotels(1);
-  };
+  }, [fetchHotels]);
   
-  const renderItem = ({ item }: { item: Hotel }) => (
+  const renderItem = useCallback(({ item }: { item: Hotel }) => (
     <HotelCard
       item={item}
       onPress={goToDetail}
       onFavorite={handleFavorite}
     />
-  );
+  ), [goToDetail, handleFavorite]);
 
-  const renderFooter = () => {
+  const keyExtractor = useCallback((item: Hotel) => item._id, []);
+
+  const renderFooter = useCallback(() => {
     if (!loading) return null;
     return (
       <View style={styles.footer}>
@@ -187,9 +187,9 @@ const ListScreen = () => {
         <Text style={styles.footerText}>加载中...</Text>
       </View>
     );
-  };
+  }, [loading]);
 
-  const renderEmpty = () => {
+  const renderEmpty = useCallback(() => {
     if (loading) return null;
     return (
       <View style={styles.empty}>
@@ -197,7 +197,7 @@ const ListScreen = () => {
         <Text style={styles.emptyText}>暂无酒店数据</Text>
       </View>
     );
-  };
+  }, [loading]);
     
   const getDayMonth = (dateStr: string) => {
     if (!dateStr) return '';
@@ -225,7 +225,7 @@ const ListScreen = () => {
     );
   };
 
-  const handleScroll = (event: any) => {
+  const handleScroll = useCallback((event: any) => {
     const offsetY = event?.nativeEvent?.contentOffset?.y || 0;
     if (activeFilterTab) {
       if (showBackTop) setShowBackTop(false);
@@ -233,11 +233,11 @@ const ListScreen = () => {
     }
     if (offsetY > 400 && !showBackTop) setShowBackTop(true);
     if (offsetY <= 400 && showBackTop) setShowBackTop(false);
-  };
+  }, [activeFilterTab, showBackTop]);
 
-  const handleBackTop = () => {
+  const handleBackTop = useCallback(() => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
-  };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -273,8 +273,13 @@ const ListScreen = () => {
             ref={listRef}
             data={hotels}
             renderItem={renderItem}
-            keyExtractor={item => item._id}
+            keyExtractor={keyExtractor}
             contentContainerStyle={styles.listContent}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            updateCellsBatchingPeriod={50}
+            removeClippedSubviews={true}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.5} // 调整阈值，防止在空列表时过早触发
             onScroll={handleScroll}

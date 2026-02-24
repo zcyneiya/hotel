@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Hotel } from '../../types/hotel';
 import { getImageUrl } from '../../utils/imageUrl';
@@ -9,11 +9,13 @@ interface HotelCardProps {
   onFavorite: (id: string) => void;
 }
 
-const HotelCard: React.FC<HotelCardProps> = ({ item, onPress, onFavorite }) => {
-  const minPrice = item.rooms && item.rooms.length > 0
-    ? Math.min(...item.rooms.map(r => r.price))
-    : 299;
-  const hasMultipleRooms = item.rooms && item.rooms.length > 1;
+const HotelCardComponent: React.FC<HotelCardProps> = ({ item, onPress, onFavorite }) => {
+  const minPrice = useMemo(() => {
+    return item.rooms && item.rooms.length > 0
+      ? Math.min(...item.rooms.map(r => r.price))
+      : 299;
+  }, [item.rooms]);
+  const hasMultipleRooms = (item.rooms?.length || 0) > 1;
 
   const getHotelName = (name: Hotel['name']): string => {
     if (typeof name === 'string') {
@@ -23,16 +25,28 @@ const HotelCard: React.FC<HotelCardProps> = ({ item, onPress, onFavorite }) => {
   };
   
   // 附近信息：景点、交通、商场
-  const nearbyInfo = [
-    ...(item.nearbyAttractions || []),
-    ...(item.nearbyTransport || []),
-    ...(item.nearbyMalls || [])
-  ].slice(0, 3).join(' · ');
+  const nearbyInfo = useMemo(() => {
+    return [
+      ...(item.nearbyAttractions || []),
+      ...(item.nearbyTransport || []),
+      ...(item.nearbyMalls || []),
+    ]
+      .slice(0, 3)
+      .join(' · ');
+  }, [item.nearbyAttractions, item.nearbyTransport, item.nearbyMalls]);
+
+  const handlePress = useCallback(() => {
+    onPress(item._id);
+  }, [onPress, item._id]);
+
+  const handleFavorite = useCallback(() => {
+    onFavorite(item._id);
+  }, [onFavorite, item._id]);
 
   return (
     <TouchableOpacity
       style={styles.hotelCard}
-      onPress={() => onPress(item._id)}
+      onPress={handlePress}
       activeOpacity={0.8}>
       <View style={styles.imageContainer}>
         <Image
@@ -43,7 +57,7 @@ const HotelCard: React.FC<HotelCardProps> = ({ item, onPress, onFavorite }) => {
         />
         <TouchableOpacity
           style={styles.favoriteBtn}
-          onPress={() => onFavorite(item._id)}>
+          onPress={handleFavorite}>
           <Text style={styles.heartIcon}>♡</Text>
         </TouchableOpacity>
       </View>
@@ -92,6 +106,8 @@ const HotelCard: React.FC<HotelCardProps> = ({ item, onPress, onFavorite }) => {
     </TouchableOpacity>
   );
 };
+
+const HotelCard = memo(HotelCardComponent);
 
 const styles = StyleSheet.create({
   hotelCard: {
