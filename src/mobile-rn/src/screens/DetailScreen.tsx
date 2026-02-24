@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   Alert,
   Dimensions,
 } from 'react-native';
@@ -21,6 +20,7 @@ import DateRangePicker from '../components/DateRangePicker';
 import MapButton from '../components/detail/MapButton';
 import NearbySection from '../components/detail/NearbySection';
 import { mapAmapPois, normalizePoiList, type NearbyPoi } from '../utils/poi';
+import { Skeleton, SkeletonBlock } from '../components/common/Skeleton';
 
 
 const { width } = Dimensions.get('window');
@@ -34,6 +34,7 @@ type DetailScreenRouteProp = RouteProp<RootStackParamList, 'Detail'>;
 const DetailScreen = () => {
   const navigation = useNavigation<DetailScreenNavigationProp>();
   const route = useRoute<DetailScreenRouteProp>();
+  const scrollRef = useRef<ScrollView>(null);
   const [hotel, setHotel] = useState<Hotel | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -47,6 +48,7 @@ const DetailScreen = () => {
   const [nearbyAttractions, setNearbyAttractions] = useState<NearbyPoi[]>([]);
   const [nearbyTransport, setNearbyTransport] = useState<NearbyPoi[]>([]);
   const [nearbyMalls, setNearbyMalls] = useState<NearbyPoi[]>([]);
+  const [showBackTop, setShowBackTop] = useState(false);
 
 
   useEffect(() => {
@@ -155,8 +157,14 @@ const DetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF385C" />
-        <Text style={styles.loadingText}>加载中...</Text>
+        <Skeleton>
+          <SkeletonBlock width={width} height={300} />
+          <SkeletonBlock width="70%" height={24} style={styles.skeletonTitle} />
+          <SkeletonBlock width="40%" height={16} style={styles.skeletonLine} />
+          <SkeletonBlock width="60%" height={16} style={styles.skeletonLine} />
+          <SkeletonBlock width="100%" height={120} style={styles.skeletonCard} />
+          <SkeletonBlock width="100%" height={120} style={styles.skeletonCard} />
+        </Skeleton>
       </View>
     );
   }
@@ -243,9 +251,24 @@ const DetailScreen = () => {
           hotel?.nearby?.shopping || hotel?.nearbyMalls || []
         );
 
+  const handleScroll = (event: any) => {
+    const offsetY = event?.nativeEvent?.contentOffset?.y || 0;
+    if (offsetY > 400 && !showBackTop) setShowBackTop(true);
+    if (offsetY <= 400 && showBackTop) setShowBackTop(false);
+  };
+
+  const handleBackTop = () => {
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         {/* 图片轮播 - 滚动展示 */}
         <View style={styles.imageSection}>
           <ScrollView
@@ -537,6 +560,15 @@ const DetailScreen = () => {
         initialCheckIn={checkInDate}
         initialCheckOut={checkOutDate}
       />
+
+      {showBackTop && (
+        <TouchableOpacity style={styles.backTopBtn} onPress={handleBackTop}>
+          <View style={styles.backTopIcon}>
+            <View style={styles.backTopLine} />
+            <Text style={styles.backTopArrow}>↑</Text>
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -556,6 +588,19 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#666',
+  },
+  skeletonTitle: {
+    marginTop: 16,
+    marginHorizontal: 20,
+  },
+  skeletonLine: {
+    marginTop: 8,
+    marginHorizontal: 20,
+  },
+  skeletonCard: {
+    marginTop: 16,
+    marginHorizontal: 20,
+    borderRadius: 12,
   },
   errorContainer: {
     flex: 1,
@@ -997,6 +1042,43 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 20,
+  },
+  backTopBtn: {
+    position: 'absolute',
+    right: 16,
+    bottom: 80,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    width: 35,
+    height: 35,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+    zIndex: 20,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  backTopIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backTopLine: {
+    width: 16,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#22222275',
+    marginBottom: 1,
+  },
+  backTopArrow: {
+    color: '#22222275',
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 20,
+    marginTop: -2,
   },
 });
 

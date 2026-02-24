@@ -20,6 +20,7 @@ import { Hotel } from '../types/hotel';
 import HomeBanner from '../components/home/HomeBanner';
 import HomeSearchCard from '../components/home/HomeSearchCard';
 import HomeDestinations from '../components/home/HomeDestinations';
+import { Skeleton, SkeletonBlock } from '../components/common/Skeleton';
 
 const { width } = Dimensions.get('window');
 const AUTO_SCROLL_INTERVAL = 3000;
@@ -70,6 +71,7 @@ const bannerConfigs: BannerConfig[] = [
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState('');
   const [keyword, setKeyword] = useState('');
   const [checkInDate, setCheckInDate] = useState('');
@@ -123,6 +125,7 @@ const HomeScreen = () => {
   };
 
   const loadBannerHotels = async () => {
+    setLoading(true);
     try {
       const mappedBanners = await Promise.all(
         bannerConfigs.map(async (config) => {
@@ -149,6 +152,8 @@ const HomeScreen = () => {
       setBanners(mappedBanners);
     } catch (error) {
       console.warn('Load banner hotels failed:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -254,6 +259,18 @@ const HomeScreen = () => {
     setCheckOutDate(checkOut);
   };
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Skeleton>
+          <SkeletonBlock width={width} height={200} />
+          <SkeletonBlock width="90%" height={120} style={styles.skeletonCard} />
+          <SkeletonBlock width="90%" height={140} style={styles.skeletonCard} />
+        </Skeleton>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <HomeBanner
@@ -314,6 +331,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  skeletonCard: {
+    marginTop: 16,
+    alignSelf: 'center',
+    borderRadius: 16,
   },
   bannerSection: {
     height: 200,
