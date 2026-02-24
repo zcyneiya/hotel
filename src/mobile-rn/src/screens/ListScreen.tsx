@@ -19,6 +19,7 @@ import DateRangePicker from '../components/DateRangePicker';
 import HotelCard from '../components/list/HotelCard';
 import { FilterBar } from '../components/list/FilterBar';
 import { SearchBar } from '../components/list/SearchBar';
+import { Skeleton, SkeletonBlock } from '../components/common/Skeleton';
 
 type ListScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -205,6 +206,25 @@ const ListScreen = () => {
     return `${parts[1]}-${parts[2]}`;
   };
 
+  const showSkeleton = loading && hotels.length === 0;
+
+  const renderListSkeleton = () => {
+    return (
+      <View style={styles.listContent}>
+        <Skeleton>
+          {[0, 1, 2].map((idx) => (
+            <SkeletonBlock key={`list-skeleton-${idx}`} style={styles.skeletonCard}>
+              <SkeletonBlock width="100%" height={180} borderRadius={16} />
+              <SkeletonBlock width="70%" height={18} style={styles.skeletonLineLg} />
+              <SkeletonBlock width="45%" height={14} style={styles.skeletonLineSm} />
+              <SkeletonBlock width="35%" height={18} style={styles.skeletonLinePrice} />
+            </SkeletonBlock>
+          ))}
+        </Skeleton>
+      </View>
+    );
+  };
+
   const handleScroll = (event: any) => {
     const offsetY = event?.nativeEvent?.contentOffset?.y || 0;
     if (activeFilterTab) {
@@ -246,23 +266,27 @@ const ListScreen = () => {
 
       <View style={{ flex: 1, zIndex: 1 }}>
         {/* 酒店列表 */}
-        <FlatList
-          ref={listRef}
-          data={hotels}
-          renderItem={renderItem}
-          keyExtractor={item => item._id}
-          contentContainerStyle={styles.listContent}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5} // 调整阈值，防止在空列表时过早触发
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          onRefresh={handleRefresh}
-          refreshing={refreshing}
-          ListFooterComponent={renderFooter}
-          ListEmptyComponent={renderEmpty}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={!activeFilterTab} // 当有筛选框打开时，禁止滚动
-        />
+        {showSkeleton ? (
+          renderListSkeleton()
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={hotels}
+            renderItem={renderItem}
+            keyExtractor={item => item._id}
+            contentContainerStyle={styles.listContent}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5} // 调整阈值，防止在空列表时过早触发
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+            ListFooterComponent={renderFooter}
+            ListEmptyComponent={renderEmpty}
+            showsVerticalScrollIndicator={false}
+            scrollEnabled={!activeFilterTab} // 当有筛选框打开时，禁止滚动
+          />
+        )}
       </View>
 
       {showBackTop && !activeFilterTab && (
@@ -317,6 +341,18 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#999',
+  },
+  skeletonCard: {
+    marginBottom: 16,
+  },
+  skeletonLineLg: {
+    marginTop: 12,
+  },
+  skeletonLineSm: {
+    marginTop: 8,
+  },
+  skeletonLinePrice: {
+    marginTop: 12,
   },
   backTopBtn: {
     position: 'absolute',

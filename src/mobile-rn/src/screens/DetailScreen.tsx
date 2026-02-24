@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   Alert,
   Dimensions,
 } from 'react-native';
@@ -21,6 +20,7 @@ import DateRangePicker from '../components/DateRangePicker';
 import MapButton from '../components/detail/MapButton';
 import NearbySection from '../components/detail/NearbySection';
 import { mapAmapPois, normalizePoiList, type NearbyPoi } from '../utils/poi';
+import { Skeleton, SkeletonBlock } from '../components/common/Skeleton';
 
 
 const { width } = Dimensions.get('window');
@@ -157,8 +157,14 @@ const DetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF385C" />
-        <Text style={styles.loadingText}>加载中...</Text>
+        <Skeleton>
+          <SkeletonBlock width={width} height={300} />
+          <SkeletonBlock width="70%" height={24} style={styles.skeletonTitle} />
+          <SkeletonBlock width="40%" height={16} style={styles.skeletonLine} />
+          <SkeletonBlock width="60%" height={16} style={styles.skeletonLine} />
+          <SkeletonBlock width="100%" height={120} style={styles.skeletonCard} />
+          <SkeletonBlock width="100%" height={120} style={styles.skeletonCard} />
+        </Skeleton>
       </View>
     );
   }
@@ -582,6 +588,19 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#666',
+  },
+  skeletonTitle: {
+    marginTop: 16,
+    marginHorizontal: 20,
+  },
+  skeletonLine: {
+    marginTop: 8,
+    marginHorizontal: 20,
+  },
+  skeletonCard: {
+    marginTop: 16,
+    marginHorizontal: 20,
+    borderRadius: 12,
   },
   errorContainer: {
     flex: 1,
@@ -1056,9 +1075,10 @@ const styles = StyleSheet.create({
   },
   backTopArrow: {
     color: '#22222275',
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: '700',
-    lineHeight: 17,
+    lineHeight: 20,
+    marginTop: -2,
   },
 });
 
