@@ -315,7 +315,7 @@ const HotelAuditDrawer = ({
               type="primary"
               icon={<CheckOutlined />}
               onClick={() => {
-                handleApprove(currentHotel._id);
+                onApprove(currentHotel._id);
                 setOpenDrawer(false);
               }}
             >
@@ -327,7 +327,7 @@ const HotelAuditDrawer = ({
               icon={<CloseOutlined />}
               onClick={() => {
                 setOpenDrawer(false);
-                handleReject(currentHotel);
+                onReject(currentHotel);
               }}
             >
               驳回
