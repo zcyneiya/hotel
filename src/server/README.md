@@ -16,11 +16,14 @@ server/
 │   │   ├── authController.js      # 认证控制器
 │   │   ├── hotelController.js     # 酒店控制器
 │   │   ├── merchantController.js  # 商户控制器
+│   │   ├── poiController.js       # POI 控制器
 │   │   └── adminController.js     # 管理员控制器
 │   ├── routes/
 │   │   ├── auth.js            # 认证路由
 │   │   ├── hotel.js           # 酒店路由
-│   │   └── audit.js           # 审核路由
+│   │   ├── audit.js           # 审核路由
+│   │   ├── poi.js             # POI 路由
+│   │   └── upload.js          # 上传路由
 │   ├── middleware/
 │   │   ├── auth.js            # 认证中间件
 │   │   └── errorHandler.js   # 错误处理中间件
@@ -45,6 +48,7 @@ MONGODB_URI=mongodb://localhost:27017/hotel
 JWT_SECRET=your-secret-key
 JWT_EXPIRE=7d
 NODE_ENV=development
+AMAP_KEY=你的高德Web服务Key
 ```
 
 ## 启动服务
@@ -96,6 +100,22 @@ npm start
 #### 提交审核（商户）
 - **POST** `/api/hotels/:id/submit`
 - Headers: `Authorization: Bearer <token>`
+
+### POI 接口（高德代理）
+
+#### 地址地理编码
+- **GET** `/api/poi/geocode?address=xxx&city=xxx`
+
+#### 周边搜索
+- **GET** `/api/poi/around?location=lng,lat&types=xxxx&radius=2000`
+
+### 上传接口
+
+#### 上传图片
+- **POST** `/api/upload/image`
+- FormData: `file`
+
+上传文件会保存到 `public/uploads/images`，可通过 `/uploads/images/文件名` 访问。
 
 ### 审核接口（管理员）
 
