@@ -10,7 +10,6 @@ admin/
 │   ├── index.css             # 全局样式
 │   ├── pages/
 │   │   ├── Login.jsx         # 登录页
-│   │   ├── Register.jsx      # 注册页
 │   │   ├── Merchant/         # 商户端
 │   │   │   ├── Layout.jsx    # 商户布局
 │   │   │   ├── Hotels.jsx    # 酒店列表

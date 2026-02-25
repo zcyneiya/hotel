@@ -23,6 +23,8 @@ export const geocode = async (req, res) => {
       address: String(address),
     });
 
+    console.log('Geocode params:', params.toString());
+
     if (city) params.append('city', String(city));
 
     const url = `https://restapi.amap.com/v3/geocode/geo?${params.toString()}`;

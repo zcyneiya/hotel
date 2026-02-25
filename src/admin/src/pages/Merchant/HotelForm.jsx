@@ -41,7 +41,7 @@ function HotelForm() {
     try {
       const res = await hotelService.getHotelById(id);
       const hotel = res.data;
-      
+
       // 转换图片数据为 Upload 组件需要的格式
       const imageList = (hotel.images || []).map((url, index) => ({
         uid: `-${index}`,
@@ -50,7 +50,7 @@ function HotelForm() {
         url: url
       }));
       setHotelImageList(imageList);
-      
+
       form.setFieldsValue({
         ...hotel,
         openDate: dayjs(hotel.openDate)
@@ -136,6 +136,7 @@ function HotelForm() {
         const point = { lng: loc.lng, lat: loc.lat };
         mapInstanceRef.current.setCenter([point.lng, point.lat]);
         applySelectedPoint(point);
+        console.log('Geocode result:', result);
         applySelectedAddress(result.geocodes[0].formattedAddress || '');
       } else {
         message.warning(result?.info || '未找到该位置');
@@ -279,11 +280,11 @@ function HotelForm() {
 
       // 3.构建 FormData
       const formData = new FormData();
-      formData.append('file', compressedFile); 
+      formData.append('file', compressedFile);
 
       // 4. 调用上传接口
       const response = await hotelService.uploadImage(formData);
-      
+
       if (response && response.data) {
         onSuccess(response.data.url);
         message.success('图片上传成功');
