@@ -141,8 +141,8 @@ const MapScreen = () => {
   const sheetMaxTranslate = sheetHeights.maxHeight - sheetHeights.minHeight;
   const sheetMidTranslate = sheetHeights.maxHeight - sheetHeights.midHeight;
   const focusOffsetY = useMemo(
-    () => (showInfo ? Math.round(sheetHeights.midHeight / 2) : 0),
-    [sheetHeights.midHeight, showInfo]
+    () => (showInfo && mapAreaHeight ? Math.round(mapAreaHeight * 0.25) : 0),
+    [mapAreaHeight, showInfo]
   );
 
   useEffect(() => {
@@ -284,10 +284,17 @@ const MapScreen = () => {
       hotelMarkerRef.current.setPosition(center);
     }
 
-    map.setZoomAndCenter(DEFAULT_ZOOM, center);
-    if (focusOffsetY) {
-      map.panBy(0, -focusOffsetY);
-    }
+    map.setZoom(DEFAULT_ZOOM);
+    setTimeout(() => {
+      if (focusOffsetY) {
+        const pixel = map.lngLatToContainer(center);
+        pixel.y += focusOffsetY;
+        const shifted = map.containerToLngLat(pixel);
+        map.setCenter(shifted);
+      } else {
+        map.setCenter(center);
+      }
+    }, 60);
 
     if (poiMarkersRef.current.length) {
       map.remove(poiMarkersRef.current);
@@ -307,10 +314,18 @@ const MapScreen = () => {
         setSelectedPoiIndex(index);
         scrollToPoi(index);
         const focusZoom = Math.max(map.getZoom(), DEFAULT_ZOOM + 2);
-        map.setZoomAndCenter(focusZoom, marker.getPosition());
-        if (focusOffsetY) {
-          map.panBy(0, -focusOffsetY);
-        }
+        const pos = marker.getPosition();
+        map.setZoom(focusZoom);
+        setTimeout(() => {
+          if (focusOffsetY) {
+            const pixel = map.lngLatToContainer(pos);
+            pixel.y += focusOffsetY;
+            const shifted = map.containerToLngLat(pixel);
+            map.setCenter(shifted);
+          } else {
+            map.setCenter(pos);
+          }
+        }, 60);
       });
       poiMarkersRef.current.push(marker);
     });
@@ -464,9 +479,19 @@ const MapScreen = () => {
                       if (marker) {
                         const map = mapRef.current;
                         const focusZoom = map ? Math.max(map.getZoom(), DEFAULT_ZOOM + 2) : DEFAULT_ZOOM + 2;
-                        map?.setZoomAndCenter(focusZoom, marker.getPosition());
-                        if (map && focusOffsetY) {
-                          map.panBy(0, -focusOffsetY);
+                        const pos = marker.getPosition();
+                        if (map) {
+                          map.setZoom(focusZoom);
+                          setTimeout(() => {
+                            if (focusOffsetY) {
+                              const pixel = map.lngLatToContainer(pos);
+                              pixel.y += focusOffsetY;
+                              const shifted = map.containerToLngLat(pixel);
+                              map.setCenter(shifted);
+                            } else {
+                              map.setCenter(pos);
+                            }
+                          }, 60);
                         }
                       }
                     }}
