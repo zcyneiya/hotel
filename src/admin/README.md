@@ -75,4 +75,5 @@ npm run build
 ```
 # src/admin/.env.local
 VITE_AMAP_JS_KEY=你的高德JS Key
+VITE_AMAP_JS_SECURITY_CODE=你的高德JS 安全密钥
 ```
