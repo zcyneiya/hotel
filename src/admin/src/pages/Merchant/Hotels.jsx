@@ -117,7 +117,7 @@ function MerchantHotels() {
               icon={<EyeOutlined />}
               onClick={() => navigate(`/merchant/hotels/view/${record._id}`)}
             >
-              查看详情
+              查看详情/编辑
             </Button>
           )}
           {(record.status === 'draft' || record.status === 'rejected') && (

@@ -136,7 +136,6 @@ function HotelForm() {
         const point = { lng: loc.lng, lat: loc.lat };
         mapInstanceRef.current.setCenter([point.lng, point.lat]);
         applySelectedPoint(point);
-        console.log('Geocode result:', result);
         applySelectedAddress(result.geocodes[0].formattedAddress || '');
       } else {
         message.warning(result?.info || '未找到该位置');

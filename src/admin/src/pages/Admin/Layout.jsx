@@ -17,12 +17,6 @@ function AdminLayout() {
 
   const menuItems = [
     {
-      key: 'audit',
-      icon: <AuditOutlined />,
-      label: '审核管理',
-      onClick: () => navigate('/admin/audit')
-    },
-    {
       key: 'hotels',
       icon: <HomeOutlined />,
       label: '酒店管理',
