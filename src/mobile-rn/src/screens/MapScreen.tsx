@@ -11,7 +11,7 @@ import {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
-  useAnimatedStyle,
+  useAnimatedStyle,              
   withSpring,
 } from 'react-native-reanimated';
 import { WebView } from 'react-native-webview';
