@@ -7,7 +7,6 @@ import HotelForm from './pages/Merchant/HotelForm';
 import HotelView from './pages/Merchant/HotelView';
 import AdminLayout from './pages/Admin/Layout';
 import AdminHotels from './pages/Admin/Hotels';
-import AdminAudit from './pages/Admin/Audit';
 import OfflineHotels from './pages/Admin/OfflineHotels';
 import { useAuthStore } from './store/authStore';
 
@@ -55,8 +54,7 @@ function App() {
           </PrivateRoute>
         }
       >
-        <Route index element={<Navigate to="/admin/audit" />} />
-        <Route path="audit" element={<AdminAudit />} />
+        <Route index element={<Navigate to="/admin/hotels" />} />
         <Route path="hotels" element={<AdminHotels />} />
         <Route path="offline" element={<OfflineHotels />} />
       </Route>
