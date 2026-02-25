@@ -92,6 +92,7 @@ const MapScreen = () => {
   const [mapError, setMapError] = useState('');
   const [mapReady, setMapReady] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
+  const [selectedPoiIndex, setSelectedPoiIndex] = useState<number | null>(null);
   const [mapAreaHeight, setMapAreaHeight] = useState(0);
   const [headerBlockHeight, setHeaderBlockHeight] = useState(0);
   const sheetTranslateY = useSharedValue(FALLBACK_MAX_HEIGHT - FALLBACK_MID_HEIGHT);
@@ -101,6 +102,8 @@ const MapScreen = () => {
   const mapRef = useRef<any>(null);
   const hotelMarkerRef = useRef<any>(null);
   const poiMarkersRef = useRef<any[]>([]);
+  const listRef = useRef<ScrollView>(null);
+  const itemOffsetsRef = useRef<number[]>([]);
 
   const { effectiveNearby, autoLoading, autoError } = useNearbyPoi({
     initialNearby: nearby,
@@ -113,6 +116,11 @@ const MapScreen = () => {
     if (activeTab === 'shopping') return effectiveNearby.shopping;
     return effectiveNearby.transportation;
   }, [activeTab, effectiveNearby]);
+
+  useEffect(() => {
+    setSelectedPoiIndex(null);
+    itemOffsetsRef.current = [];
+  }, [activeTab, currentPois]);
 
   const sheetHeights = useMemo(() => {
     const maxHeight =
@@ -132,6 +140,10 @@ const MapScreen = () => {
 
   const sheetMaxTranslate = sheetHeights.maxHeight - sheetHeights.minHeight;
   const sheetMidTranslate = sheetHeights.maxHeight - sheetHeights.midHeight;
+  const focusOffsetY = useMemo(
+    () => (showInfo ? Math.round(sheetHeights.midHeight / 2) : 0),
+    [sheetHeights.midHeight, showInfo]
+  );
 
   useEffect(() => {
     if (!showInfo) return;
@@ -144,6 +156,13 @@ const MapScreen = () => {
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: sheetTranslateY.value }],
   }));
+
+  const scrollToPoi = (index: number) => {
+    const y = itemOffsetsRef.current[index];
+    if (typeof y === 'number') {
+      listRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
+    }
+  };
 
   const panGesture = Gesture.Pan()
     .onBegin(() => {
@@ -248,7 +267,10 @@ const MapScreen = () => {
     const map = mapRef.current;
     const center = [mapLocation.lng, mapLocation.lat];
     const hotelIconUrl = 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png';
-    const poiIconUrl = 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png';
+    const poiIconUrl = 'https://webapi.amap.com/theme/v1.3/markers/n/mark_bs.png';
+    const poiActiveIconUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="36" viewBox="0 0 26 36"><path d="M13 0C6.4 0 1 5.4 1 12c0 9 12 24 12 24s12-15 12-24C25 5.4 19.6 0 13 0z" fill="#FF8A00"/><circle cx="13" cy="12" r="4.2" fill="#FFFFFF"/></svg>'
+    )}`;
 
     if (!hotelMarkerRef.current) {
       hotelMarkerRef.current = new w.AMap.Marker({
@@ -263,13 +285,16 @@ const MapScreen = () => {
     }
 
     map.setZoomAndCenter(DEFAULT_ZOOM, center);
+    if (focusOffsetY) {
+      map.panBy(0, -focusOffsetY);
+    }
 
     if (poiMarkersRef.current.length) {
       map.remove(poiMarkersRef.current);
       poiMarkersRef.current = [];
     }
 
-    currentPois.forEach((poi) => {
+    currentPois.forEach((poi, index) => {
       const parsed = parseLocationString(poi.location);
       if (!parsed) return;
       const marker = new w.AMap.Marker({
@@ -278,13 +303,38 @@ const MapScreen = () => {
         icon: poiIconUrl,
         offset: new w.AMap.Pixel(0, -12),
       });
+      marker.on('click', () => {
+        setSelectedPoiIndex(index);
+        scrollToPoi(index);
+        const focusZoom = Math.max(map.getZoom(), DEFAULT_ZOOM + 2);
+        map.setZoomAndCenter(focusZoom, marker.getPosition());
+        if (focusOffsetY) {
+          map.panBy(0, -focusOffsetY);
+        }
+      });
       poiMarkersRef.current.push(marker);
     });
 
     if (poiMarkersRef.current.length) {
       map.add(poiMarkersRef.current);
     }
-  }, [mapReady, mapLocation, currentPois, hotelName]);
+  }, [mapReady, mapLocation, currentPois, hotelName, focusOffsetY]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    const w = globalThis as any;
+    const poiIconUrl = 'https://webapi.amap.com/theme/v1.3/markers/n/mark_bs.png';
+    const poiActiveIconUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="36" viewBox="0 0 26 36"><path d="M13 0C6.4 0 1 5.4 1 12c0 9 12 24 12 24s12-15 12-24C25 5.4 19.6 0 13 0z" fill="#FF8A00"/><circle cx="13" cy="12" r="4.2" fill="#FFFFFF"/></svg>'
+    )}`;
+    poiMarkersRef.current.forEach((marker, i) => {
+      marker.setIcon(i === selectedPoiIndex ? poiActiveIconUrl : poiIconUrl);
+      marker.setTop(i === selectedPoiIndex);
+      if (marker.setAnimation) {
+        marker.setAnimation(i === selectedPoiIndex ? 'AMAP_ANIMATION_BOUNCE' : 'AMAP_ANIMATION_NONE');
+      }
+    });
+  }, [selectedPoiIndex, mapReady, currentPois]);
 
   const renderMap = () => {
     if (!AMAP_JS_KEY) {
@@ -391,7 +441,7 @@ const MapScreen = () => {
               </Animated.View>
             </GestureDetector>
 
-            <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+            <ScrollView ref={listRef} style={styles.list} showsVerticalScrollIndicator={false}>
               {currentPois.length === 0 ? (
                 <Text style={styles.emptyText}>
                   {autoLoading
@@ -402,14 +452,43 @@ const MapScreen = () => {
                 </Text>
               ) : (
                 currentPois.map((poi, index) => (
-                  <View key={`${poi.name}-${index}`} style={styles.listItem}>
-                    <Text style={styles.poiName}>{poi.name}</Text>
+                  <TouchableOpacity
+                    key={`${poi.name}-${index}`}
+                    onLayout={(e) => {
+                      itemOffsetsRef.current[index] = e.nativeEvent.layout.y;
+                    }}
+                    onPress={() => {
+                      setSelectedPoiIndex(index);
+                      scrollToPoi(index);
+                      const marker = poiMarkersRef.current[index];
+                      if (marker) {
+                        const map = mapRef.current;
+                        const focusZoom = map ? Math.max(map.getZoom(), DEFAULT_ZOOM + 2) : DEFAULT_ZOOM + 2;
+                        map?.setZoomAndCenter(focusZoom, marker.getPosition());
+                        if (map && focusOffsetY) {
+                          map.panBy(0, -focusOffsetY);
+                        }
+                      }
+                    }}
+                    style={[
+                      styles.listItem,
+                      selectedPoiIndex === index && styles.listItemActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.poiName,
+                        selectedPoiIndex === index && styles.poiNameActive,
+                      ]}
+                    >
+                      {poi.name}
+                    </Text>
                     {poi.distance ? (
                       <Text style={styles.poiDistance}>
                         {formatDistance(poi.distance)}
                       </Text>
                     ) : null}
-                  </View>
+                  </TouchableOpacity>
                 ))
               )}
             </ScrollView>
@@ -592,11 +671,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f2f2f2',
   },
+  listItemActive: {
+    backgroundColor: 'rgba(255,138,0,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,138,0,0.6)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+  },
   poiName: {
     fontSize: 14,
     color: '#222',
     flex: 1,
     paddingRight: 8,
+  },
+  poiNameActive: {
+    color: '#FF8A00',
+    fontWeight: '600',
   },
   poiDistance: {
     fontSize: 12,
