@@ -13,6 +13,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,              
   withSpring,
+  runOnJS,
 } from 'react-native-reanimated';
 import { WebView } from 'react-native-webview';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -22,7 +23,7 @@ import { AMAP_JS_KEY, AMAP_JS_SECURITY_CODE } from '../config';
 import { poiService } from '../services/poiService';
 import { useNearbyPoi } from '../hooks/useNearbyPoi';
 import { formatDistance } from '../utils/poi';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DEFAULT_ZOOM = 15;
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -218,10 +219,12 @@ const MapScreen = () => {
   const webViewRef = useRef<WebView>(null);
   const [mapAreaHeight, setMapAreaHeight] = useState(0);
   const [headerBlockHeight, setHeaderBlockHeight] = useState(0);
+  const insets = useSafeAreaInsets();
   const listRef = useRef<ScrollView>(null);
   const itemOffsetsRef = useRef<number[]>([]);
   const sheetTranslateY = useSharedValue(FALLBACK_MAX_HEIGHT - FALLBACK_MID_HEIGHT);
   const sheetStartY = useSharedValue(FALLBACK_MAX_HEIGHT - FALLBACK_MID_HEIGHT);
+  const [sheetSnapY, setSheetSnapY] = useState<number | null>(null);
 
   const { effectiveNearby, autoLoading, autoError } = useNearbyPoi({
     initialNearby: nearby,
@@ -262,6 +265,11 @@ const MapScreen = () => {
     () => (showInfo ? Math.round(sheetHeights.midHeight / 2) : 0),
     [sheetHeights.midHeight, showInfo]
   );
+  const listBottomPadding = useMemo(() => {
+    const base = Math.max(insets.bottom, 12) + 16;
+    const extra = sheetSnapY ? Math.max(0, sheetSnapY - 4) : 0;
+    return base + extra;
+  }, [insets.bottom, sheetSnapY]);
 
   useEffect(() => {
     if (!showInfo) return;
@@ -269,6 +277,7 @@ const MapScreen = () => {
       damping: 18,
       stiffness: 180,
     });
+    setSheetSnapY(sheetMidTranslate);
   }, [showInfo, sheetTranslateY, sheetMidTranslate]);
 
   const sheetStyle = useAnimatedStyle(() => ({
@@ -299,6 +308,7 @@ const MapScreen = () => {
         damping: 18,
         stiffness: 180,
       });
+      runOnJS(setSheetSnapY)(closest);
     });
 
   useEffect(() => {
@@ -520,7 +530,12 @@ const MapScreen = () => {
               </Animated.View>
             </GestureDetector>
 
-            <ScrollView ref={listRef} style={styles.list} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              ref={listRef}
+              style={styles.list}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: listBottomPadding }}
+            >
               {currentPois.length === 0 ? (
                 <Text style={styles.emptyText}>
                   {autoLoading
@@ -530,37 +545,44 @@ const MapScreen = () => {
                       : '暂无周边信息'}
                 </Text>
               ) : (
-                currentPois.map((poi, index) => (
-                  <TouchableOpacity
-                    key={`${poi.name}-${index}`}
-                    onLayout={(e) => {
-                      itemOffsetsRef.current[index] = e.nativeEvent.layout.y;
-                    }}
-                    onPress={() => {
-                      setSelectedPoiIndex(index);
-                      focusPoiOnMap(index);
-                      scrollToPoi(index);
-                    }}
-                    style={[
-                      styles.listItem,
-                      selectedPoiIndex === index && styles.listItemActive,
-                    ]}
-                  >
-                    <Text
+                <>
+                  {currentPois.map((poi, index) => (
+                    <TouchableOpacity
+                      key={`${poi.name}-${index}`}
+                      onLayout={(e) => {
+                        itemOffsetsRef.current[index] = e.nativeEvent.layout.y;
+                      }}
+                      onPress={() => {
+                        setSelectedPoiIndex(index);
+                        focusPoiOnMap(index);
+                        scrollToPoi(index);
+                      }}
                       style={[
-                        styles.poiName,
-                        selectedPoiIndex === index && styles.poiNameActive,
+                        styles.listItem,
+                        selectedPoiIndex === index && styles.listItemActive,
                       ]}
                     >
-                      {poi.name}
-                    </Text>
-                    {poi.distance ? (
-                      <Text style={styles.poiDistance}>
-                        {formatDistance(poi.distance)}
+                      <Text
+                        style={[
+                          styles.poiName,
+                          selectedPoiIndex === index && styles.poiNameActive,
+                        ]}
+                      >
+                        {poi.name}
                       </Text>
-                    ) : null}
-                  </TouchableOpacity>
-                ))
+                      {poi.distance ? (
+                        <Text style={styles.poiDistance}>
+                          {formatDistance(poi.distance)}
+                        </Text>
+                      ) : null}
+                    </TouchableOpacity>
+                  ))}
+                  {!autoLoading && (
+                    <View style={styles.listFooter}>
+                      <Text style={styles.listFooterText}>已到最底了</Text>
+                    </View>
+                  )}
+                </>
               )}
             </ScrollView>
           </Animated.View>
@@ -762,6 +784,21 @@ const styles = StyleSheet.create({
   poiDistance: {
     fontSize: 12,
     color: '#888',
+  },
+  listFooter: {
+    marginTop: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#eee',
+    backgroundColor: '#fafafa',
+  },
+  listFooterText: {
+    fontSize: 12,
+    color: '#999',
   },
   emptyText: {
     textAlign: 'center',

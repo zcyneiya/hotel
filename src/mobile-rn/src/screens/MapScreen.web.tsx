@@ -13,6 +13,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  runOnJS,
 } from 'react-native-reanimated';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,7 +22,7 @@ import { AMAP_JS_KEY, AMAP_JS_SECURITY_CODE } from '../config';
 import { poiService } from '../services/poiService';
 import { useNearbyPoi } from '../hooks/useNearbyPoi';
 import { formatDistance } from '../utils/poi';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DEFAULT_ZOOM = 15;
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -95,8 +96,10 @@ const MapScreen = () => {
   const [selectedPoiIndex, setSelectedPoiIndex] = useState<number | null>(null);
   const [mapAreaHeight, setMapAreaHeight] = useState(0);
   const [headerBlockHeight, setHeaderBlockHeight] = useState(0);
+  const insets = useSafeAreaInsets();
   const sheetTranslateY = useSharedValue(FALLBACK_MAX_HEIGHT - FALLBACK_MID_HEIGHT);
   const sheetStartY = useSharedValue(FALLBACK_MAX_HEIGHT - FALLBACK_MID_HEIGHT);
+  const [sheetSnapY, setSheetSnapY] = useState<number | null>(null);
 
   const mapContainerRef = useRef<any>(null);
   const mapRef = useRef<any>(null);
@@ -144,6 +147,11 @@ const MapScreen = () => {
     () => (showInfo && mapAreaHeight ? Math.round(mapAreaHeight * 0.25) : 0),
     [mapAreaHeight, showInfo]
   );
+  const listBottomPadding = useMemo(() => {
+    const base = Math.max(insets.bottom, 12) + 16;
+    const extra = sheetSnapY ? Math.max(0, sheetSnapY - 4) : 0;
+    return base + extra;
+  }, [insets.bottom, sheetSnapY]);
 
   useEffect(() => {
     if (!showInfo) return;
@@ -151,6 +159,7 @@ const MapScreen = () => {
       damping: 18,
       stiffness: 180,
     });
+    setSheetSnapY(sheetMidTranslate);
   }, [showInfo, sheetTranslateY, sheetMidTranslate]);
 
   const sheetStyle = useAnimatedStyle(() => ({
@@ -188,6 +197,7 @@ const MapScreen = () => {
         damping: 18,
         stiffness: 180,
       });
+      runOnJS(setSheetSnapY)(closest);
     });
 
   useEffect(() => {
@@ -456,7 +466,12 @@ const MapScreen = () => {
               </Animated.View>
             </GestureDetector>
 
-            <ScrollView ref={listRef} style={styles.list} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              ref={listRef}
+              style={styles.list}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: listBottomPadding }}
+            >
               {currentPois.length === 0 ? (
                 <Text style={styles.emptyText}>
                   {autoLoading
@@ -466,55 +481,62 @@ const MapScreen = () => {
                       : '暂无周边信息'}
                 </Text>
               ) : (
-                currentPois.map((poi, index) => (
-                  <TouchableOpacity
-                    key={`${poi.name}-${index}`}
-                    onLayout={(e) => {
-                      itemOffsetsRef.current[index] = e.nativeEvent.layout.y;
-                    }}
-                    onPress={() => {
-                      setSelectedPoiIndex(index);
-                      scrollToPoi(index);
-                      const marker = poiMarkersRef.current[index];
-                      if (marker) {
-                        const map = mapRef.current;
-                        const focusZoom = map ? Math.max(map.getZoom(), DEFAULT_ZOOM + 2) : DEFAULT_ZOOM + 2;
-                        const pos = marker.getPosition();
-                        if (map) {
-                          map.setZoom(focusZoom);
-                          setTimeout(() => {
-                            if (focusOffsetY) {
-                              const pixel = map.lngLatToContainer(pos);
-                              pixel.y += focusOffsetY;
-                              const shifted = map.containerToLngLat(pixel);
-                              map.setCenter(shifted);
-                            } else {
-                              map.setCenter(pos);
-                            }
-                          }, 60);
+                <>
+                  {currentPois.map((poi, index) => (
+                    <TouchableOpacity
+                      key={`${poi.name}-${index}`}
+                      onLayout={(e) => {
+                        itemOffsetsRef.current[index] = e.nativeEvent.layout.y;
+                      }}
+                      onPress={() => {
+                        setSelectedPoiIndex(index);
+                        scrollToPoi(index);
+                        const marker = poiMarkersRef.current[index];
+                        if (marker) {
+                          const map = mapRef.current;
+                          const focusZoom = map ? Math.max(map.getZoom(), DEFAULT_ZOOM + 2) : DEFAULT_ZOOM + 2;
+                          const pos = marker.getPosition();
+                          if (map) {
+                            map.setZoom(focusZoom);
+                            setTimeout(() => {
+                              if (focusOffsetY) {
+                                const pixel = map.lngLatToContainer(pos);
+                                pixel.y += focusOffsetY;
+                                const shifted = map.containerToLngLat(pixel);
+                                map.setCenter(shifted);
+                              } else {
+                                map.setCenter(pos);
+                              }
+                            }, 60);
+                          }
                         }
-                      }
-                    }}
-                    style={[
-                      styles.listItem,
-                      selectedPoiIndex === index && styles.listItemActive,
-                    ]}
-                  >
-                    <Text
+                      }}
                       style={[
-                        styles.poiName,
-                        selectedPoiIndex === index && styles.poiNameActive,
+                        styles.listItem,
+                        selectedPoiIndex === index && styles.listItemActive,
                       ]}
                     >
-                      {poi.name}
-                    </Text>
-                    {poi.distance ? (
-                      <Text style={styles.poiDistance}>
-                        {formatDistance(poi.distance)}
+                      <Text
+                        style={[
+                          styles.poiName,
+                          selectedPoiIndex === index && styles.poiNameActive,
+                        ]}
+                      >
+                        {poi.name}
                       </Text>
-                    ) : null}
-                  </TouchableOpacity>
-                ))
+                      {poi.distance ? (
+                        <Text style={styles.poiDistance}>
+                          {formatDistance(poi.distance)}
+                        </Text>
+                      ) : null}
+                    </TouchableOpacity>
+                  ))}
+                  {!autoLoading && (
+                    <View style={styles.listFooter}>
+                      <Text style={styles.listFooterText}>已到最底了</Text>
+                    </View>
+                  )}
+                </>
               )}
             </ScrollView>
           </Animated.View>
@@ -716,6 +738,21 @@ const styles = StyleSheet.create({
   poiDistance: {
     fontSize: 12,
     color: '#888',
+  },
+  listFooter: {
+    marginTop: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#eee',
+    backgroundColor: '#fafafa',
+  },
+  listFooterText: {
+    fontSize: 12,
+    color: '#999',
   },
   emptyText: {
     textAlign: 'center',
