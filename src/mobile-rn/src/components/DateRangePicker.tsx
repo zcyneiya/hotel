@@ -232,11 +232,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             >
               {/* 头部 */}
               <View style={styles.header}>
-                <TouchableOpacity onPress={handleClose}>
+                <TouchableOpacity onPress={handleClose} style={styles.headerAction}>
                   <Text style={styles.closeBtn}>✕</Text>
                 </TouchableOpacity>
                 <Text style={styles.title}>选择日期</Text>
-                <TouchableOpacity onPress={handleReset}>
+                <TouchableOpacity onPress={handleReset} style={styles.headerActionRight}>
                   <Text style={styles.resetBtn}>重置</Text>
                 </TouchableOpacity>
               </View>
@@ -263,7 +263,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             <TouchableOpacity
               onPress={() => changeMonth(-1)}
               style={styles.monthBtn}>
-              <Text style={styles.monthBtnText}>←</Text>
+              <Text style={styles.monthBtnText}>‹</Text>
             </TouchableOpacity>
             <Text style={styles.monthText}>
               {year}年 {monthNames[month]}
@@ -271,7 +271,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             <TouchableOpacity
               onPress={() => changeMonth(1)}
               style={styles.monthBtn}>
-              <Text style={styles.monthBtnText}>→</Text>
+              <Text style={styles.monthBtnText}>›</Text>
             </TouchableOpacity>
           </View>
 
@@ -353,13 +353,13 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.42)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     height: 'auto',
     maxHeight: '80%',
     width: '100%',
@@ -368,157 +368,191 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 17,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#F2F2F2',
+    backgroundColor: '#FFFFFF',
+  },
+  headerAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECECEC',
+  },
+  headerActionRight: {
+    minWidth: 54,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#ECECEC',
   },
   closeBtn: {
-    fontSize: 24,
-    color: '#666',
-    width: 40,
+    fontSize: 18,
+    color: '#4A4A4A',
+    lineHeight: 20,
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#1F1F1F',
   },
   resetBtn: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#FF385C',
-    width: 40,
-    textAlign: 'right',
+    fontWeight: '600',
   },
   selectedDates: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 10,
     padding: 13,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   dateBox: {
     flex: 1,
     alignItems: 'center',
+    paddingVertical: 8,
   },
   dateLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
+    fontSize: 11,
+    color: '#9A9A9A',
+    marginBottom: 6,
   },
   dateValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#333',
+    color: '#202020',
   },
   dateDivider: {
-    fontSize: 18,
-    color: '#666',
-    marginHorizontal: 16,
+    fontSize: 14,
+    color: '#BDBDBD',
+    marginHorizontal: 8,
   },
   monthSelector: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 10,
+    marginHorizontal: 16,
+    marginBottom: 4,
+    paddingVertical: 6,
   },
   monthBtn: {
-    width: 40,
-    height: 40,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EDEDED',
   },
   monthBtnText: {
     fontSize: 20,
-    color: '#333',
+    color: '#2F2F2F',
   },
   monthText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
+    color: '#1F1F1F',
   },
   weekRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f8f8f8',
+    paddingVertical: 10,
   },
   weekDay: {
     width: (width - 32) / 7,
     alignItems: 'center',
   },
   weekDayText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 12,
+    color: '#A0A0A0',
     fontWeight: '600',
   },
   calendarScroll: {
-    maxHeight: 350,
+    maxHeight: 340,
   },
   calendar: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingBottom: 10,
   },
   dayCell: {
     width: (width - 32) / 7,
-    height: 55,
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: 3,
   },
   checkInCell: {
     backgroundColor: '#FF385C',
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
+    borderRadius: 24,
   },
   checkOutCell: {
     backgroundColor: '#FF385C',
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+    borderRadius: 24,
   },
   inRangeCell: {
-    backgroundColor: '#FFE5E5',
+    backgroundColor: '#FFE8EE',
+    borderRadius: 10,
   },
   pastCell: {
-    opacity: 0.3,
+    opacity: 0.35,
   },
   dayText: {
-    fontSize: 16,
-    color: '#333',
+    fontSize: 15,
+    color: '#2B2B2B',
   },
   selectedDayText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   pastDayText: {
-    color: '#ccc',
+    color: '#C7C7C7',
   },
   dayLabel: {
     fontSize: 10,
-    color: '#fff',
-    marginTop: 2,
+    color: '#FFF4F7',
+    marginTop: 1,
   },
   footer: {
     padding: 16,
-    paddingBottom: 35, 
+    paddingTop: 12,
+    paddingBottom: 26,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    backgroundColor: '#fff', 
+    borderTopColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
   },
   confirmBtn: {
     backgroundColor: '#FF385C',
-    borderRadius: 8,
+    borderRadius: 999,
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
   confirmBtnDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#F5A3B3',
   },
   confirmBtnText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });
 
