@@ -119,11 +119,16 @@ const MapScreen = () => {
     if (activeTab === 'shopping') return effectiveNearby.shopping;
     return effectiveNearby.transportation;
   }, [activeTab, effectiveNearby]);
+  const safePois = useMemo(
+    () => (Array.isArray(currentPois) ? currentPois : []),
+    [currentPois]
+  );
+  const tabOptions = useMemo(() => TAB_OPTIONS ?? [], []);
 
   useEffect(() => {
     setSelectedPoiIndex(null);
     itemOffsetsRef.current = [];
-  }, [activeTab, currentPois]);
+  }, [activeTab, safePois]);
 
   const sheetHeights = useMemo(() => {
     const maxHeight =
@@ -442,7 +447,7 @@ const MapScreen = () => {
                     </View>
                   </View>
                   <View style={styles.tabRow}>
-                    {TAB_OPTIONS.map((tab) => (
+                    {tabOptions.map((tab) => (
                       <TouchableOpacity
                         key={tab.key}
                         style={[
@@ -472,7 +477,7 @@ const MapScreen = () => {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: listBottomPadding }}
             >
-              {currentPois.length === 0 ? (
+              {safePois.length === 0 ? (
                 <Text style={styles.emptyText}>
                   {autoLoading
                     ? '正在加载周边信息...'
@@ -482,7 +487,7 @@ const MapScreen = () => {
                 </Text>
               ) : (
                 <>
-                  {currentPois.map((poi, index) => (
+                  {safePois.map((poi, index) => (
                     <TouchableOpacity
                       key={`${poi.name}-${index}`}
                       onLayout={(e) => {
