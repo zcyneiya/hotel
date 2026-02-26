@@ -60,6 +60,37 @@ const buildMapHtml = (key: string, securityCode?: string) => {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 <style>
   html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; }
+  #skeleton {
+    position: absolute;
+    inset: 0;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .skeleton-card {
+    width: 86%;
+    max-width: 340px;
+    background: #fff;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  }
+  .skeleton-line {
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease infinite;
+    margin-bottom: 10px;
+  }
+  .skeleton-line.lg { height: 16px; }
+  .skeleton-line.sm { width: 65%; }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
 </style>
 <script>
 ${securityScript}
@@ -68,12 +99,28 @@ ${securityScript}
 </head>
 <body>
 <div id="map"></div>
+<div id="skeleton">
+  <div class="skeleton-card">
+    <div class="skeleton-line lg"></div>
+    <div class="skeleton-line sm"></div>
+    <div class="skeleton-line"></div>
+    <div class="skeleton-line sm"></div>
+  </div>
+</div>
 <script>
   var map = new AMap.Map('map', { zoom: ${DEFAULT_ZOOM}, center: [116.397428, 39.90923] });
   var hotelMarker = null;
   var poiMarkers = [];
   var selectedIndex = -1;
   var focusOffsetY = 0;
+
+  function hideSkeleton() {
+    var el = document.getElementById('skeleton');
+    if (el) el.style.display = 'none';
+  }
+
+  map.on('complete', hideSkeleton);
+  setTimeout(hideSkeleton, 4000);
 
   function clearPoiMarkers() {
     if (poiMarkers.length) {
@@ -237,11 +284,16 @@ const MapScreen = () => {
     if (activeTab === 'shopping') return effectiveNearby.shopping;
     return effectiveNearby.transportation;
   }, [activeTab, effectiveNearby]);
+  const safePois = useMemo(
+    () => (Array.isArray(currentPois) ? currentPois : []),
+    [currentPois]
+  );
+  const tabOptions = useMemo(() => TAB_OPTIONS ?? [], []);
 
   useEffect(() => {
     setSelectedPoiIndex(null);
     itemOffsetsRef.current = [];
-  }, [activeTab, currentPois]);
+  }, [activeTab, safePois]);
 
   const sheetHeights = useMemo(() => {
     const maxHeight =
@@ -390,14 +442,14 @@ const MapScreen = () => {
         name: hotelName,
         location: mapLocation,
       },
-      pois: currentPois,
+      pois: safePois,
       selectedIndex: selectedPoiIndex ?? -1,
       focusOffsetY,
     };
     webViewRef.current?.postMessage(
       JSON.stringify({ type: 'render', payload })
     );
-  }, [webReady, mapLocation, currentPois, hotelId, hotelName, selectedPoiIndex, focusOffsetY]);
+  }, [webReady, mapLocation, safePois, hotelId, hotelName, selectedPoiIndex, focusOffsetY]);
 
   const handleWebMessage = (event: any) => {
     try {
@@ -506,7 +558,7 @@ const MapScreen = () => {
                     </View>
                   </View>
                   <View style={styles.tabRow}>
-                    {TAB_OPTIONS.map((tab) => (
+                    {tabOptions.map((tab) => (
                       <TouchableOpacity
                         key={tab.key}
                         style={[
@@ -536,7 +588,7 @@ const MapScreen = () => {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: listBottomPadding }}
             >
-              {currentPois.length === 0 ? (
+              {safePois.length === 0 ? (
                 <Text style={styles.emptyText}>
                   {autoLoading
                     ? '正在加载周边信息...'
@@ -546,7 +598,7 @@ const MapScreen = () => {
                 </Text>
               ) : (
                 <>
-                  {currentPois.map((poi, index) => (
+                  {safePois.map((poi, index) => (
                     <TouchableOpacity
                       key={`${poi.name}-${index}`}
                       onLayout={(e) => {
