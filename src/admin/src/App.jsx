@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import MerchantLayout from './pages/Merchant/Layout';
-import MerchantHotels from './pages/Merchant/Hotels';
-import HotelForm from './pages/Merchant/HotelForm';
-import HotelView from './pages/Merchant/HotelView';
-import AdminLayout from './pages/Admin/Layout';
-import AdminHotels from './pages/Admin/Hotels';
-import OfflineHotels from './pages/Admin/OfflineHotels';
 import { useAuthStore } from './store/authStore';
+
+const Login = lazy(() => import('./pages/Login'));
+const MerchantLayout = lazy(() => import('./pages/Merchant/Layout'));
+const MerchantHotels = lazy(() => import('./pages/Merchant/Hotels'));
+const HotelForm = lazy(() => import('./pages/Merchant/HotelForm'));
+const HotelView = lazy(() => import('./pages/Merchant/HotelView'));
+const AdminLayout = lazy(() => import('./pages/Admin/Layout'));
+const AdminHotels = lazy(() => import('./pages/Admin/Hotels'));
+const OfflineHotels = lazy(() => import('./pages/Admin/OfflineHotels'));
 
 function PrivateRoute({ children, requiredRole }) {
   const { user, token } = useAuthStore();
@@ -26,6 +27,7 @@ function PrivateRoute({ children, requiredRole }) {
 
 function App() {
   return (
+    <Suspense fallback={<div>加载中...</div>}>
     <Routes>
       <Route path="/login" element={<Login />} />
 
@@ -61,6 +63,7 @@ function App() {
 
       <Route path="/" element={<Navigate to="/login" />} />
     </Routes>
+    </Suspense>
   );
 }
 
