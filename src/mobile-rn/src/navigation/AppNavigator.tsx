@@ -8,6 +8,7 @@ import ListScreen from '../screens/ListScreen';
 import DetailScreen from '../screens/DetailScreen';
 import MapScreen from '../screens/MapScreen';
 
+//使用堆栈导航器，并指定参数类型
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {

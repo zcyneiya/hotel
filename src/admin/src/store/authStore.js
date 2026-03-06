@@ -10,6 +10,7 @@ export const useAuthStore = create(
       logout: () => set({ user: null, token: null })
     }),
     {
+      //持久化配置
       name: 'auth-storage'
     }
   )

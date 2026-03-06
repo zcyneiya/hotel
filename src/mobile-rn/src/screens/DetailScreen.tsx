@@ -21,13 +21,15 @@ import MapButton from '../components/detail/MapButton';
 import NearbySection from '../components/detail/NearbySection';
 import { mapAmapPois, normalizePoiList, type NearbyPoi } from '../utils/poi';
 import { Skeleton, SkeletonBlock } from '../components/common/Skeleton';
+import ChatButton from '../components/detail/ChatButton';
+import ChatModal from '../components/detail/ChatModal';
 
 
 const { width } = Dimensions.get('window');
 
 type DetailScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  'Detail'
+  'Detail' 
 >;
 type DetailScreenRouteProp = RouteProp<RootStackParamList, 'Detail'>;
 
@@ -49,6 +51,7 @@ const DetailScreen = () => {
   const [nearbyTransport, setNearbyTransport] = useState<NearbyPoi[]>([]);
   const [nearbyMalls, setNearbyMalls] = useState<NearbyPoi[]>([]);
   const [showBackTop, setShowBackTop] = useState(false);
+  const [chatVisible, setChatVisible] = useState(false);
 
 
   useEffect(() => {
@@ -569,6 +572,15 @@ const DetailScreen = () => {
           </View>
         </TouchableOpacity>
       )}
+
+      <ChatButton onPress={() => setChatVisible(true)} />
+
+      <ChatModal
+        visible={chatVisible}
+        onClose={() => setChatVisible(false)}
+        hotelId={hotel._id}
+        hotelName={getHotelName(hotel.name)}
+      />
     </View>
   );
 };

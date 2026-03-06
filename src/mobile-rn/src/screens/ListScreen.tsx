@@ -75,7 +75,7 @@ const ListScreen = () => {
   }, [activeFilterTab]);
 
   const fetchHotels = useCallback(async (pageNum: number) => {
-    if (loading && pageNum > 1) return; // Prevent multiple load more requests, but allow refresh/filter
+    if (loading && pageNum > 1) return; //加载更多且有请求正在执行，就跳过，防止重复翻页
 
     setLoading(true);
     try {
@@ -94,7 +94,7 @@ const ListScreen = () => {
       if (ratingFilter) params.rating = ratingFilter;
       if (facilitiesFilter.length > 0) params.facilities = facilitiesFilter.join(',');
       
-      console.log('Fetching hotels params:', params); 
+      //console.log('Fetching hotels params:', params); 
 
       const response = await hotelService.getHotels(params);
 
@@ -145,23 +145,6 @@ const ListScreen = () => {
     Alert.alert('提示', '已收藏');
   }, []);
 
-  // 格式化日期显示
-  const formatDateDisplay = (dateStr: string): string => {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    return `${parts[1]}/${parts[2]}`;
-  };
-
-  // 计算入住天数
-  const calculateNights = (): number => {
-    if (!checkInDate || !checkOutDate) return 0;
-    const checkIn = new Date(checkInDate);
-    const checkOut = new Date(checkOutDate);
-    const diff = checkOut.getTime() - checkIn.getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  };
-
   // 处理日期选择
   const handleDateConfirm = useCallback((checkIn: string, checkOut: string) => {
     setCheckInDate(checkIn);
@@ -198,13 +181,6 @@ const ListScreen = () => {
       </View>
     );
   }, [loading]);
-    
-  const getDayMonth = (dateStr: string) => {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length < 3) return '';
-    return `${parts[1]}-${parts[2]}`;
-  };
 
   const showSkeleton = loading && hotels.length === 0;
 
@@ -225,9 +201,10 @@ const ListScreen = () => {
     );
   };
 
+  //控制回顶按钮的显示和隐藏
   const handleScroll = useCallback((event: any) => {
     const offsetY = event?.nativeEvent?.contentOffset?.y || 0;
-    if (activeFilterTab) {
+    if (activeFilterTab) { //筛选框打开
       if (showBackTop) setShowBackTop(false);
       return;
     }
@@ -271,25 +248,32 @@ const ListScreen = () => {
         ) : (
           <FlatList
             ref={listRef}
+            //数据与渲染
             data={hotels}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
             contentContainerStyle={styles.listContent}
+            //性能优化
             initialNumToRender={8}
             maxToRenderPerBatch={8}
             windowSize={7}
-            updateCellsBatchingPeriod={50}
-            removeClippedSubviews={true}
+            updateCellsBatchingPeriod={50}// 每 50ms 批量更新一次，减少渲染频率
+            removeClippedSubviews={true}// 移出屏幕的 item 从渲染树中卸载，节省内存
+            //分页加载
             onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.5} // 调整阈值，防止在空列表时过早触发
+            onEndReachedThreshold={0.5} // 距底部 50% 时触发，防止空列表误触发
+            //滚动事件
             onScroll={handleScroll}
             scrollEventThrottle={16}
+            scrollEnabled={!activeFilterTab} // 当有筛选框打开时，禁止滚动
+            //下拉刷新
             onRefresh={handleRefresh}
             refreshing={refreshing}
+            //插槽组件
             ListFooterComponent={renderFooter}
             ListEmptyComponent={renderEmpty}
             showsVerticalScrollIndicator={false}
-            scrollEnabled={!activeFilterTab} // 当有筛选框打开时，禁止滚动
+            
           />
         )}
       </View>

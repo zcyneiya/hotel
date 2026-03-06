@@ -54,6 +54,7 @@ function MerchantHotels() {
       title: '酒店名称',
       dataIndex: ['name', 'cn'],
       key: 'name',
+      //render: (value, record, index)：value - dataIndex 对应的值，record - 当前行数据，index - 当前行索引
       render: (name, record) => (
         <Space>
           {name}
@@ -75,7 +76,7 @@ function MerchantHotels() {
     {
       title: '房型/空闲',
       key: 'rooms',
-      render: (_, record) => {
+      render: (_, record) => { // 不需要 value
         if (!record.rooms || record.rooms.length === 0) {
           return '-';
         }

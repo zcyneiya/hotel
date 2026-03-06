@@ -22,12 +22,14 @@ import HomeSearchCard from '../components/home/HomeSearchCard';
 import HomeDestinations from '../components/home/HomeDestinations';
 import { Skeleton, SkeletonBlock } from '../components/common/Skeleton';
 
+//获取屏幕可用窗口尺寸大小
 const { width } = Dimensions.get('window');
 const AUTO_SCROLL_INTERVAL = 3000;
 
+//定义当前屏幕的导航属性类型
 type HomeScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'Home'
+  RootStackParamList, //路由参数列表
+  'Home' //当前屏幕名称
 >;
 
 type BannerConfig = {
@@ -89,6 +91,8 @@ const HomeScreen = () => {
       hotelId: '',
     }))
   );
+
+  //在banners后拼接第一张，这样跳转肉眼就无法察觉到最后一张和第一张的切换
   const displayBanners = banners.length > 0 ? [...banners, banners[0]] : [];
 
   useEffect(() => {
@@ -157,7 +161,7 @@ const HomeScreen = () => {
     }
   };
 
-  // 快捷标签 - 对应数据库中的酒店标签
+  // 快捷标签
   const quickTags = ['停车场', '游泳池', '健身房', '餐厅', '免费WiFi'];
 
   // 推荐目的地
@@ -274,14 +278,14 @@ const HomeScreen = () => {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <HomeBanner
-        banners={banners}
-        displayBanners={displayBanners}
+        banners={banners} //原始数据
+        displayBanners={displayBanners} //用于实际渲染的轮播图数据，末尾多一张第一张的图
         currentBannerIndex={currentBannerIndex}
         bannerScrollRef={bannerScrollRef}
         onBannerPress={handleBannerClick}
-        onMomentumScrollEnd={(event) => {
+        onMomentumScrollEnd={(event) => { //手动滑动轮播图时，更新当前索引
           const newIndex = Math.round(event.nativeEvent.contentOffset.x / width);
-          if (newIndex === banners.length) {
+          if (newIndex === banners.length) {// 如果滑到了最后一张，瞬间跳回第一张
             bannerScrollRef.current?.scrollTo({ x: 0, animated: false });
             setCurrentBannerIndex(0);
             return;

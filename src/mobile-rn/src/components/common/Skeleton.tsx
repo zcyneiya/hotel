@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
+import { StyleSheet, View, ViewStyle, DimensionValue } from 'react-native';
 
 type SkeletonProps = {
   children: React.ReactNode;
@@ -8,15 +8,17 @@ type SkeletonProps = {
 type SkeletonBlockProps = {
   children?: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
-  width?: number | string;
-  height?: number | string;
+  width?: DimensionValue;
+  height?: DimensionValue;
   borderRadius?: number;
 };
 
+//骨架瓶容器
 export const Skeleton: React.FC<SkeletonProps> = ({ children }) => {
   return <View style={styles.container}>{children}</View>;
 };
 
+//骨架瓶块
 export const SkeletonBlock: React.FC<SkeletonBlockProps> = ({
   children,
   style,

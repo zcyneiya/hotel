@@ -179,6 +179,7 @@ function AdminHotels() {
               danger
               icon={<DeleteOutlined />}
               onClick={(e) => {
+                //阻止事件冒泡
                 e.stopPropagation();
                 handleOffline(record._id);
               }}

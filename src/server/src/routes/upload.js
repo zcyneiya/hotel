@@ -14,14 +14,15 @@ const uploadDir = path.join(__dirname, '../../public/uploads/images');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
-
-// Multer 配置
+ 
+// Multer 配置（磁盘存储引擎，将文件保存到磁盘）
 const storage = multer.diskStorage({
+  // 设置上传目录
   destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
+  // 设置文件名
   filename: (req, file, cb) => {
-    // 生成唯一ID
     const uniqueId = uuidv4();
     // 获取原始扩展名 (.jpg, .png)
     const ext = path.extname(file.originalname).toLowerCase();
@@ -42,7 +43,47 @@ const upload = multer({
   }
 });
 
-// 上传接口 POST /api/upload/image
+/**
+ * @swagger
+ * /api/upload/image:
+ *   post:
+ *     summary: 上传图片
+ *     tags: [文件上传]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: 图片文件（最大5MB）
+ *     responses:
+ *       200:
+ *         description: 上传成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                     id:
+ *                       type: string
+ *                     filename:
+ *                       type: string
+ *       400:
+ *         description: 请求错误
+ */
 router.post('/image', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ code: 400, message: '请选择文件' });

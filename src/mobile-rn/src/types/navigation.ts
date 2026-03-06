@@ -1,3 +1,4 @@
+//设置导航器有哪些页面，以及每个页面接受什么参数
 export type RootStackParamList = {
   Home: undefined;
   List: {

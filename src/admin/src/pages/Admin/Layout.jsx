@@ -44,7 +44,7 @@ function AdminLayout() {
         <Sider width={200}>
           <Menu
             mode="inline"
-            defaultSelectedKeys={['audit']}
+            defaultSelectedKeys={['hotels']}
             style={{ height: '100%', borderRight: 0 }}
             items={menuItems}
           />

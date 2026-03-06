@@ -18,7 +18,7 @@ export const getPendingHotels = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
+}; 
 
 // 获取所有酒店（管理员视图）
 export const getAllHotels = async (req, res) => {

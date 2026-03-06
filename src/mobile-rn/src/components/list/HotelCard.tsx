@@ -10,6 +10,7 @@ interface HotelCardProps {
 }
 
 const HotelCardComponent: React.FC<HotelCardProps> = ({ item, onPress, onFavorite }) => {
+  //useMemo，缓存计算结果，依赖项变化时才重新计算
   const minPrice = useMemo(() => {
     return item.rooms && item.rooms.length > 0
       ? Math.min(...item.rooms.map(r => r.price))
@@ -35,6 +36,7 @@ const HotelCardComponent: React.FC<HotelCardProps> = ({ item, onPress, onFavorit
       .join(' · ');
   }, [item.nearbyAttractions, item.nearbyTransport, item.nearbyMalls]);
 
+  //useCallback，缓存函数实例，依赖项变化时才重新创建
   const handlePress = useCallback(() => {
     onPress(item._id);
   }, [onPress, item._id]);
@@ -107,6 +109,7 @@ const HotelCardComponent: React.FC<HotelCardProps> = ({ item, onPress, onFavorit
   );
 };
 
+//memo，避免不必要的重新渲染，当props没有变化时，组件不会重新渲染
 const HotelCard = memo(HotelCardComponent);
 
 const styles = StyleSheet.create({

@@ -3,20 +3,17 @@ import { BASE_URL } from '../config';
 export const getImageUrl = (url: string | undefined | null): string => {
   if (!url) return 'https://via.placeholder.com/690x460/667eea/ffffff?text=Hotel';
   
-  // If it's not a string, return placeholder
+  // 如果 url 是 null、undefined 或非字符串，返回一个占位图
   if (typeof url !== 'string') return 'https://via.placeholder.com/690x460/667eea/ffffff?text=Hotel';
 
-  // If it is already a full URL
   if (url.startsWith('http')) {
-    // If it's localhost, replace with BASE_URL to work on devices/emulators
     if (url.includes('localhost')) {
       return url.replace(/http:\/\/localhost:\d+/, BASE_URL);
     }
     return url;
   }
   
-  // If it's a relative path starting with /, remove the slash to avoid double slashes if BASE_URL ends with /
-  // But BASE_URL is defined without trailing slash. So:
+  // 如果是相对路径
   if (url.startsWith('/')) {
     return `${BASE_URL}${url}`;
   }

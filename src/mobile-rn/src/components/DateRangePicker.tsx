@@ -193,9 +193,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setCurrentMonth(newDate);
   };
 
-  // 确认选择
-  // handleConfirm 已在上方重写，这里删除多余部分
-
   // 重置选择
   const handleReset = () => {
     setSelectedCheckIn(null);

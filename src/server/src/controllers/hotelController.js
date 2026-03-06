@@ -3,6 +3,7 @@ import Audit from '../models/Audit.js';
 
 // 转换 nearby 数据为移动端格式
 const transformNearbyData = (hotel) => {
+  //因为要添加 Schema 外的新字段，所以先转换为普通对象
   const hotelObj = hotel.toObject ? hotel.toObject() : hotel;
 
   // 如果有 nearby 对象，转换为移动端需要的格式
@@ -65,7 +66,6 @@ export const getHotels = async (req, res) => {
         }
       }
     } else {
-      // use minPrice and maxPrice from query params
       if (req.query.minPrice !== undefined) minPrice = parseInt(req.query.minPrice);
       if (req.query.maxPrice !== undefined) maxPrice = parseInt(req.query.maxPrice);
     }
@@ -92,14 +92,15 @@ export const getHotels = async (req, res) => {
       query.city = { $regex: city.replace(/市$/, ''), $options: 'i' };
     }
 
-    // 星级筛选（只有有效数字才添加）
     if (starLevel && starLevel !== 'undefined' && !isNaN(parseInt(starLevel))) {
       query.starLevel = parseInt(starLevel);
     }
 
-    // 关键字搜索
+    // 关键字搜索，多字段模糊搜索
     if (keyword && keyword !== 'undefined') {
+      // 使用正则表达式进行模糊搜索，$options: 'i'表示忽略大小写
       const keywordRegex = { $regex: keyword, $options: 'i' };
+      //$or操作符允许在多个字段中进行模糊搜索
       query.$or = [
         { 'name.cn': keywordRegex },
         { 'name.en': keywordRegex },
@@ -107,13 +108,14 @@ export const getHotels = async (req, res) => {
       ];
     }
 
-    // 价格区间筛选 (使用 $elemMatch 确保同一个房间同时满足两个条件)
+    // 价格区间筛选
     if (minPrice !== undefined || maxPrice !== undefined) {
       const priceQuery = {};
       if (minPrice !== undefined && !isNaN(minPrice)) priceQuery.$gte = minPrice;
       if (maxPrice !== undefined && !isNaN(maxPrice)) priceQuery.$lte = maxPrice;
 
       if (Object.keys(priceQuery).length > 0) {
+        //$elemMatch 是 MongoDB 的数组查询操作符，用于匹配数组中至少有一个元素满足所有指定条件。
         query.rooms = { $elemMatch: { price: priceQuery } };
       }
     }
@@ -123,21 +125,23 @@ export const getHotels = async (req, res) => {
       query.facilities = { $all: facilitiesList };
     }
 
-    // 评分筛选 (临时使用 starLevel 作为评分依据，或者如果有评分字段再改)
+    // 评分筛选
     if (rating) {
-      // 由于没有评分字段，暂时不做过滤，或者如果 starLevel 可以作为评分参考
-      // query.starLevel = { $gte: parseFloat(rating) };
+      const ratingNum = parseFloat(rating);
+      if (!isNaN(ratingNum)) {
+        query.rating = { $gte: ratingNum };
+      }
     }
 
-    console.log('解码后的城市:', city);
-    console.log('MongoDB 查询条件:', JSON.stringify(query, null, 2));
+    //console.log('解码后的城市:', city);
+    //console.log('MongoDB 查询条件:', JSON.stringify(query, null, 2));
 
     const hotels = await Hotel.find(query)
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
 
-    console.log('查询结果数量:', hotels.length);
+    //console.log('查询结果数量:', hotels.length);
 
     const total = await Hotel.countDocuments(query);
 
